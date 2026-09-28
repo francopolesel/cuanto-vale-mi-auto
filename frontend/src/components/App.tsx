@@ -198,7 +198,7 @@ export function App() {
                 <button className="cta" type="submit">Buscar valor</button>
               </div>
               <details className="filters">
-                <summary>Filtros opcionales</summary>
+                <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
                 <div className="filters-body">
                   <label htmlFor="mileage">
                     Kilometraje aproximado

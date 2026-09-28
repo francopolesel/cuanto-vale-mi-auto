@@ -72,6 +72,24 @@ html, body {
   text-decoration: none;
 }
 
+.navbar .brand {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  border-radius: 10px;
+}
+
+.navbar .brand-logo {
+  height: 44px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+
 .theme-toggle {
   min-width: 48px;
   min-height: 48px;

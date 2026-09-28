@@ -155,8 +155,8 @@ export function App() {
   return (
     <div className="page">
       <header className="navbar">
-        <a className="name" href="#" onClick={(e) => { e.preventDefault(); reset(); }}>
-          Cuánto vale mi auto
+        <a className="brand" href="#" onClick={(e) => { e.preventDefault(); reset(); }} aria-label="Cuánto vale mi auto - inicio">
+          <img src="/logo.jpg" alt="Cuánto vale mi auto" className="brand-logo" />
         </a>
         <button
           type="button"

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: cuanto-vale-mi-auto
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: CACHE_TTL_MINUTES
+        value: 60
+      - key: YEAR_WINDOW
+        value: 3

@@ -37,7 +37,7 @@ export function filterListings(listings: CarListing[], criteria: SearchCriteria)
       discarded.push({ listing: l, reason: 'partial-price' });
       continue;
     }
-    const score = scoreComparable(l.title, l.year, l.mileage != null, criteria, config.yearWindow);
+    const score = scoreComparable(l.title, l.year, l.mileage, criteria, config.yearWindow);
     if (score.modelSimilarity <= 0) {
       const t = ` ${normalizeText(l.title)} `;
       const brandOk = t.includes(` ${normalizeBrand(criteria.brand)} `);

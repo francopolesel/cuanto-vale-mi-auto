@@ -106,7 +106,7 @@ describe('comparables', () => {
     expect(getModelSimilarity('VW Gol Trendline 1.6 2017', 'Volkswagen', 'Gol Trend').score).toBeGreaterThan(0);
     expect(getModelSimilarity('Volkswagen Voyage 2017', 'Volkswagen', 'Gol Trend').level).toBe('INVALID');
     expect(getModelSimilarity('Ford Fiesta 2017', 'Volkswagen', 'Gol Trend').level).toBe('INVALID');
-    const s = scoreComparable('Volkswagen Gol Trend 2016', 2016, true, { brand: 'Volkswagen', model: 'Gol Trend', year: 2017 });
+    const s = scoreComparable('Volkswagen Gol Trend 2016', 2016, 80000, { brand: 'Volkswagen', model: 'Gol Trend', year: 2017 });
     expect(s.level).toBe('NEARBY_YEAR');
     expect(s.total).toBeCloseTo(0.9, 5);
   });
@@ -144,5 +144,43 @@ describe('time adjustment', () => {
       2017,
     );
     expect(info.applied).toBe(false);
+  });
+});
+
+describe('optional filters', () => {
+  it('version filter rewards matching titles without gating', async () => {
+    const { getVersionSimilarity, getMileageSimilarity } = await import('./services/comparables.js');
+    expect(getVersionSimilarity('Volkswagen Golf 2.0 GTI', 'Golf', '2.0')).toBe(1);
+    expect(getVersionSimilarity('Volkswagen Golf 1.6 Trendline', 'Golf', '2.0')).toBeLessThan(1);
+    expect(getVersionSimilarity('Volkswagen Golf 1.6', 'Golf')).toBe(1);
+  });
+  it('mileage similarity decays with distance, never zeroes', async () => {
+    const { getMileageSimilarity } = await import('./services/comparables.js');
+    expect(getMileageSimilarity(170000, 170000)).toBe(1);
+    expect(getMileageSimilarity(undefined, 170000)).toBe(0.9);
+    expect(getMileageSimilarity(undefined, undefined)).toBe(0.95);
+    const far = getMileageSimilarity(300000, 50000);
+    expect(far).toBeGreaterThanOrEqual(0.4);
+    expect(far).toBeLessThan(1);
+  });
+  it('mileage adjustment normalizes toward requested km when trend is sane', async () => {
+    const { adjustPricesToMileage } = await import('./services/mileageAdjust.js');
+    const items: { mileage: number; priceARS: number }[] = [];
+    for (let i = 0; i < 20; i++) {
+      const km = 40000 + i * 10000;
+      items.push({ mileage: km, priceARS: Math.round(20_000_000 - 15 * km) });
+    }
+    const { adjusted, info } = adjustPricesToMileage(items, 170000);
+    expect(info.applied).toBe(true);
+    expect(info.slopePerKmARS).toBeLessThan(0);
+    // low-km car adjusted DOWN toward 170k level
+    expect(adjusted[0]).toBeLessThan(items[0].priceARS);
+  });
+  it('mileage adjustment refuses absurd or increasing trends', async () => {
+    const { adjustPricesToMileage } = await import('./services/mileageAdjust.js');
+    const few = Array.from({ length: 5 }, (_, i) => ({ mileage: 50000 + i * 10000, priceARS: 10_000_000 }));
+    expect(adjustPricesToMileage(few, 170000).info.applied).toBe(false);
+    const rising = Array.from({ length: 20 }, (_, i) => ({ mileage: 40000 + i * 10000, priceARS: 10_000_000 + i * 100000 }));
+    expect(adjustPricesToMileage(rising, 170000).info.applied).toBe(false);
   });
 });

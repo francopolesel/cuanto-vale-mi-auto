@@ -43,7 +43,12 @@ resultado del pipeline, nunca un conteo crudo previo.
 ≥4 muestras y pendiente verosímil (≤40% de la mediana/año). Si no, passthrough documentado.
 
 **Estimación**: media/mediana/P10–P90 **ponderados** sobre precios ajustados; rango = P10–P90
-ponderados. La confianza (ALTA/MEDIA/BAJA) es una salida: muestra efectiva, % exactos,
+ponderados.
+**Filtros opcionales** (`mileage`, `version`): son pesos suaves, nunca compuertas.
+El km pondera por cercanía (decaimiento gaussiano) y, con ≥15 comparables con km,
+normaliza precios con tendencia robusta decreciente; la versión bonifica coincidencias.
+Si la muestra sigue corta, el pipeline relaja versión y luego km (LEVEL 6) y lo informa
+en `appliedFilters.relaxed`. La confianza (ALTA/MEDIA/BAJA) es una salida: muestra efectiva, % exactos,
 fuentes, dispersión (CV) y calidad de datos. `INSUFICIENTE` solo si no hay base ni con
 comparables. La respuesta incluye `comparables.byYear`, `methodology` narrativa y objeto
 `debug` con fases, matching y filtrado.

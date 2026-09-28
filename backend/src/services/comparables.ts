@@ -67,28 +67,50 @@ export function getModelSimilarity(title: string, brand: string, model: string):
  * Version similarity: when the requested model itself carries extra tokens
  * (e.g. user typed "Corolla XEI"), reward titles containing them.
  * With a plain "brand + base model" query every version scores 1.0.
+ * An explicit `version` filter (e.g. "2.0", "GTI") works the same way and is
+ * combined by taking the minimum (most specific requirement wins).
  */
-export function getVersionSimilarity(title: string, model: string): number {
+export function getVersionSimilarity(title: string, model: string, version?: string): number {
   const t = normalizeText(title);
-  const tokens = modelTokens(model).slice(1); // beyond the base model token
-  if (tokens.length === 0) return 1.0;
-  const matched = tokens.filter((tok) => t.includes(tok)).length;
-  return 0.7 + 0.3 * (matched / tokens.length);
+  const scoreTokens = (tokens: string[]): number => {
+    if (tokens.length === 0) return 1.0;
+    const matched = tokens.filter((tok) => t.includes(tok)).length;
+    return 0.7 + 0.3 * (matched / tokens.length);
+  };
+  const fromModel = scoreTokens(modelTokens(model).slice(1));
+  const fromFilter = version ? scoreTokens(modelTokens(version)) : 1.0;
+  return Math.min(fromModel, fromFilter);
+}
+
+/**
+ * Mileage similarity: Gaussian-ish decay on relative km difference.
+ * - No user filter: known 1.0 / unknown 0.95 (as before, never destructive).
+ * - With user filter: listing without km scores 0.9 (usable, down-weighted);
+ *   with km, weight decays with |km - requested| / scale (scale = max(30k, requested*0.5)).
+ */
+export function getMileageSimilarity(listingMileage: number | undefined, requestedMileage?: number): number {
+  if (requestedMileage == null) return listingMileage != null ? 1.0 : 0.95;
+  if (listingMileage == null) return 0.9;
+  if (requestedMileage <= 0) return 1.0;
+  const scale = Math.max(30_000, requestedMileage * 0.5);
+  const d = Math.abs(listingMileage - requestedMileage) / scale;
+  return Math.max(0.4, Math.exp(-d * d));
 }
 
 export function scoreComparable(
   title: string,
   listingYear: number,
-  hasMileage: boolean,
+  mileage: number | undefined,
   criteria: SearchCriteria,
   yearWindow = 3,
 ): ComparableScore {
   const model = getModelSimilarity(title, criteria.brand, criteria.model);
   const yearSimilarity = getYearSimilarityWeight(criteria.year, listingYear, yearWindow);
-  const versionSimilarity = model.score > 0 ? getVersionSimilarity(title, criteria.model) : 0;
+  const versionSimilarity = model.score > 0 ? getVersionSimilarity(title, criteria.model, criteria.version) : 0;
+  const mileageSimilarity = model.score > 0 ? getMileageSimilarity(mileage, criteria.mileage) : 0;
   // Missing mileage slightly lowers comparability; never destroys it.
-  const mileageFactor = hasMileage ? 1.0 : 0.95;
-  const total = model.score * yearSimilarity * versionSimilarity * mileageFactor;
+  const mileageFactor = mileage != null ? 1.0 : 0.95;
+  const total = model.score * yearSimilarity * versionSimilarity * mileageSimilarity * mileageFactor;
 
   let level: MatchLevel = 'INVALID';
   if (model.score > 0 && yearSimilarity > 0) {
@@ -97,5 +119,5 @@ export function scoreComparable(
     else if (model.score >= 1) level = 'NEARBY_YEAR';
     else level = 'VARIANT';
   }
-  return { modelSimilarity: model.score, yearSimilarity, versionSimilarity, mileageFactor, total, level };
+  return { modelSimilarity: model.score, yearSimilarity, versionSimilarity, mileageSimilarity, mileageFactor, total, level };
 }

@@ -9,6 +9,7 @@ import { confidenceLevel } from './confidence.js';
 import { convertToARS, getExchangeRate } from './exchangeRate.js';
 import { getComparableYearRange, scoreComparable } from './comparables.js';
 import { adjustPricesToYear } from './timeAdjust.js';
+import { adjustPricesToMileage } from './mileageAdjust.js';
 import { normalizeText } from './normalizer.js';
 import { cacheGet, cacheKey, cacheSet } from './cache.js';
 
@@ -45,7 +46,7 @@ async function searchAll(sources: CarDataSource[], criteria: SearchCriteria, pha
 
 function rescore(listings: CarListing[], criteria: SearchCriteria): CarListing[] {
   return listings.map((l) => {
-    const s = scoreComparable(l.title, l.year, l.mileage != null, criteria, config.yearWindow);
+    const s = scoreComparable(l.title, l.year, l.mileage, criteria, config.yearWindow);
     return { ...l, weight: s.total, matchLevel: s.level };
   });
 }
@@ -64,10 +65,11 @@ interface PipelineEstimate {
   outliers: number;
   adjPrices: number[];
   timeAdj: ReturnType<typeof adjustPricesToYear>['info'];
+  kmAdj: ReturnType<typeof adjustPricesToMileage>['info'];
   enough: boolean;
 }
 
-/** Full local pipeline: filter -> dedup -> time-adjust -> outliers -> weighted stats. */
+/** Full local pipeline: filter -> dedup -> time-adjust -> mileage-adjust -> outliers -> weighted stats. */
 function buildEstimate(scored: CarListing[], criteria: SearchCriteria): PipelineEstimate {
   const { kept, discarded } = filterListings(scored, criteria);
   console.log(`[Filter] ${kept.length} comparable candidates, ${discarded.length} discarded`);
@@ -80,7 +82,13 @@ function buildEstimate(scored: CarListing[], criteria: SearchCriteria): Pipeline
     criteria.year,
   );
   console.log(`[TimeAdjust] ${timeAdj.info.applied ? `applied slope ${timeAdj.info.slopePerYearARS}` : `skipped: ${timeAdj.info.reason}`}`);
-  const adjusted = unique.map((l, i) => ({ ...l, adjustedPriceARS: timeAdj.adjusted[i] }));
+
+  const kmAdj = adjustPricesToMileage(
+    unique.map((l, i) => ({ mileage: l.mileage ?? 0, priceARS: timeAdj.adjusted[i] })),
+    criteria.mileage ?? 0,
+  );
+  console.log(`[MileageAdjust] ${kmAdj.info.applied ? `applied slope ${kmAdj.info.slopePerKmARS}` : `skipped: ${kmAdj.info.reason}`}`);
+  const adjusted = unique.map((l, i) => ({ ...l, adjustedPriceARS: kmAdj.adjusted[i] }));
 
   const adjPrices = adjusted.map((l) => l.adjustedPriceARS ?? 0);
   const { kept: cleanAdj, outliers } = removeOutliers(adjPrices);
@@ -117,12 +125,18 @@ function buildEstimate(scored: CarListing[], criteria: SearchCriteria): Pipeline
     outliers,
     adjPrices,
     timeAdj: timeAdj.info,
+    kmAdj: kmAdj.info,
     enough,
   };
 }
 
+function fmtKm(km?: number): string {
+  if (km == null) return '';
+  return `${new Intl.NumberFormat('es-AR').format(km)} km`;
+}
+
 export async function runValuation(criteria: SearchCriteria, opts: { useCache?: boolean } = {}): Promise<ValuationResponse> {
-  const key = cacheKey(criteria.brand, criteria.model, criteria.year);
+  const key = cacheKey(criteria.brand, criteria.model, criteria.year, criteria.mileage, criteria.version);
   if (opts.useCache !== false) {
     const hit = cacheGet(key);
     if (hit) {
@@ -165,7 +179,30 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
   }
   phases.push('LEVEL 4-5: variant + nearby-year comparables, weighted');
 
-  const { kept, discarded, duplicates, usedListings, stats, effectiveWeight, outliers, adjPrices, timeAdj } = est;
+  // ---- LEVEL 6: relax optional filters (never a hard gate) ----
+  // If evidence is still thin, neutralize the most restrictive optional
+  // filter first (version, then mileage) and keep whichever yields more
+  // comparables. The user is told what was relaxed.
+  const relaxed: string[] = [];
+  let activeCriteria = criteria;
+  const tryRelax = (label: 'version' | 'mileage', next: SearchCriteria): void => {
+    const attempt = buildEstimate(rescore(withArs(raw), next), next);
+    if (attempt.usedListings.length > est.usedListings.length) {
+      est = attempt;
+      activeCriteria = next;
+      relaxed.push(label);
+      phases.push(`LEVEL 6: filtro opcional "${label}" relajado (${attempt.usedListings.length} comparables)`);
+    }
+  };
+  if (!est.enough && activeCriteria.version) {
+    tryRelax('version', { ...activeCriteria, version: undefined });
+  }
+  if (!est.enough && activeCriteria.mileage != null) {
+    const { mileage: _drop, ...rest } = activeCriteria;
+    tryRelax('mileage', rest);
+  }
+
+  const { kept, discarded, duplicates, usedListings, stats, effectiveWeight, outliers, adjPrices, timeAdj, kmAdj } = est;
 
   const discardReasons: Record<string, number> = {};
   for (const d of discarded) discardReasons[d.reason] = (discardReasons[d.reason] ?? 0) + 1;
@@ -231,11 +268,13 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
   const medianMileage = kms.length ? Math.round(median(kms)) : null;
 
   const methodology = valuation
-    ? nExact >= config.minExactForFastPath && !broadSearchUsed
+    ? nExact >= config.minExactForFastPath && !broadSearchUsed && relaxed.length === 0
       ? `Estimación basada en ${usedListings.length} comparables del año ${criteria.year} con mediana y promedio ponderados por similitud.`
       : `Se encontraron ${nExact} publicaciones exactas del ${criteria.year}; la búsqueda se amplió a ${getComparableYearRange(criteria.year, config.yearWindow).join(', ')} y variantes del modelo. ` +
         `Estimación sobre ${usedListings.length} comparables ponderados por similitud` +
         (timeAdj.applied ? `, con precios normalizados al ${criteria.year} (${timeAdj.reason})` : ', sin ajuste temporal') +
+        (kmAdj.applied ? ` y normalizados a ${fmtKm(criteria.mileage)} (${kmAdj.reason})` : '') +
+        (relaxed.length > 0 ? ` Se relajaron los filtros opcionales (${relaxed.join(', ')}) por poca muestra específica.` : '') +
         `.`
     : undefined;
 
@@ -266,6 +305,17 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
         slopePerYearARS: timeAdj.slopePerYearARS,
         yearsUsed: timeAdj.yearsUsed,
         reason: timeAdj.reason,
+      },
+      mileageAdjustment: {
+        applied: kmAdj.applied,
+        slopePerKmARS: kmAdj.slopePerKmARS,
+        samples: kmAdj.samples,
+        reason: kmAdj.reason,
+      },
+      appliedFilters: {
+        mileage: criteria.mileage ?? null,
+        version: criteria.version ?? null,
+        relaxed,
       },
       broadSearchUsed,
     },

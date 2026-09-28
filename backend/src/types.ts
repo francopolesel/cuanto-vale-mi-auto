@@ -9,6 +9,9 @@ export interface SearchCriteria {
   year: number;
   /** When true, scrapers omit the year from the query to gather nearby-year comparables. */
   broad?: boolean;
+  /** Optional filters: soft weights, never hard gates (see comparables.ts). */
+  mileage?: number;
+  version?: string;
 }
 
 export interface CarListing {
@@ -44,6 +47,7 @@ export interface ComparableScore {
   modelSimilarity: number;
   yearSimilarity: number;
   versionSimilarity: number;
+  mileageSimilarity: number;
   mileageFactor: number;
   total: number;
   level: MatchLevel;
@@ -111,6 +115,8 @@ export interface ValuationResponse {
     effectiveWeight: number;
     byYear: { year: number; count: number; avgWeight: number; medianPriceARS: number }[];
     timeAdjustment: { applied: boolean; slopePerYearARS: number; yearsUsed: number[]; reason: string };
+    mileageAdjustment: { applied: boolean; slopePerKmARS: number; samples: number; reason: string };
+    appliedFilters: { mileage: number | null; version: string | null; relaxed: string[] };
     broadSearchUsed: boolean;
   };
   debug: {

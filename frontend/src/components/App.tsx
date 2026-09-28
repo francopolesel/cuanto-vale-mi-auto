@@ -41,6 +41,8 @@ export function App() {
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState(new Date().getFullYear() - 5);
+  const [mileage, setMileage] = useState('');
+  const [version, setVersion] = useState('');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -78,13 +80,18 @@ export function App() {
     return () => clearTimeout(t);
   }, [loading]);
 
-  async function search(b = brand, m = model, y = year) {
+  async function search(b = brand, m = model, y = year, km = mileage, ver = version) {
     if (!b.trim()) {
       setFormError('Elegí una marca para continuar.');
       return;
     }
     if (!m.trim()) {
       setFormError('Escribí el modelo para continuar.');
+      return;
+    }
+    const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
+    if (km.trim() !== '' && (!kmNum || kmNum <= 0)) {
+      setFormError('Ingresá un kilometraje válido.');
       return;
     }
     setFormError(null);
@@ -94,7 +101,10 @@ export function App() {
     setShowListings(false);
     setVisible(PAGE_SIZE);
     try {
-      const r = await fetch(`/api/valuation?brand=${encodeURIComponent(b.trim())}&model=${encodeURIComponent(m.trim())}&year=${y}`);
+      const params = new URLSearchParams({ brand: b.trim(), model: m.trim(), year: String(y) });
+      if (kmNum) params.set('mileage', String(kmNum));
+      if (ver.trim()) params.set('version', ver.trim());
+      const r = await fetch(`/api/valuation?${params}`);
       if (!r.ok) throw new Error();
       const json = (await r.json()) as ValuationResponse;
       if (!json.valuation) {
@@ -187,6 +197,19 @@ export function App() {
                 </label>
                 <button className="cta" type="submit">Buscar valor</button>
               </div>
+              <details className="filters">
+                <summary>Filtros opcionales</summary>
+                <div className="filters-body">
+                  <label htmlFor="mileage">
+                    Kilometraje aproximado
+                    <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="170.000" autoComplete="off" />
+                  </label>
+                  <label htmlFor="version">
+                    Versión
+                    <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="2.0" autoComplete="off" />
+                  </label>
+                </div>
+              </details>
             </form>
             {formError && <p className="form-error" role="alert">{formError}</p>}
             {!formError && <p className="hint">Con la marca, el modelo y el año alcanza.</p>}
@@ -252,6 +275,15 @@ export function App() {
                 <p>Promedio: <strong>{fmt(v.average)}</strong></p>
                 <p>Rango: <strong>{fmt(v.min)} – {fmt(v.max)}</strong></p>
                 <p>Publicaciones analizadas: <strong>{fmtNum(data.comparables.total)}</strong></p>
+                {(data.comparables.appliedFilters.mileage != null || data.comparables.appliedFilters.version) && (
+                  <p>
+                    Filtros: <strong>
+                      {[data.comparables.appliedFilters.mileage != null ? `${fmtNum(data.comparables.appliedFilters.mileage)} km` : null,
+                        data.comparables.appliedFilters.version].filter(Boolean).join(' · ')}
+                    </strong>
+                    {data.comparables.appliedFilters.relaxed.length > 0 && ` (se ampliaron por poca muestra: ${data.comparables.appliedFilters.relaxed.join(', ')})`}
+                  </p>
+                )}
                 <p>Actualización: <strong>{new Date(data.queriedAt).toLocaleString('es-AR')}</strong></p>
               </div>
             </details>

@@ -13,6 +13,8 @@ export interface ValuationResponse {
     exact: number; nearbyYear: number; variant: number; total: number; effectiveWeight: number;
     byYear: { year: number; count: number; avgWeight: number; medianPriceARS: number }[];
     timeAdjustment: { applied: boolean; slopePerYearARS: number; yearsUsed: number[]; reason: string };
+    mileageAdjustment: { applied: boolean; slopePerKmARS: number; samples: number; reason: string };
+    appliedFilters: { mileage: number | null; version: string | null; relaxed: string[] };
     broadSearchUsed: boolean;
   };
   debug: {

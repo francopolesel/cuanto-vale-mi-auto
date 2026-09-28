@@ -7,6 +7,8 @@ const querySchema = z.object({
   brand: z.string().min(1).max(60),
   model: z.string().min(1).max(80),
   year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
+  mileage: z.coerce.number().int().min(0).max(2_000_000).optional(),
+  version: z.string().min(1).max(40).optional(),
   refresh: z.coerce.boolean().optional(),
   dollar: z.enum(['OFICIAL', 'BLUE', 'MEP']).optional(),
 });
@@ -21,7 +23,13 @@ valuationRouter.get('/valuation', async (req, res) => {
   }
   try {
     const result = await runValuation(
-      { brand: parsed.data.brand.trim(), model: parsed.data.model.trim(), year: parsed.data.year },
+      {
+        brand: parsed.data.brand.trim(),
+        model: parsed.data.model.trim(),
+        year: parsed.data.year,
+        mileage: parsed.data.mileage,
+        version: parsed.data.version?.trim() || undefined,
+      },
       { useCache: !parsed.data.refresh },
     );
     res.json(result);

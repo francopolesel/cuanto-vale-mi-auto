@@ -49,3 +49,10 @@ export const fmtNum = (n: number) => new Intl.NumberFormat('es-AR').format(n);
 
 export const fmtShort = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1).replace('.', ',').replace(',0', '')} M` : fmtARS(n);
+
+export const titleCase = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map((w) => (/^\s*$/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join('');

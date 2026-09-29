@@ -9,6 +9,7 @@ const querySchema = z.object({
   year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
   mileage: z.coerce.number().int().min(0).max(2_000_000).optional(),
   version: z.string().min(1).max(40).optional(),
+  condition: z.enum(['NEW']).optional(),
   refresh: z.coerce.boolean().optional(),
   dollar: z.enum(['OFICIAL', 'BLUE', 'MEP']).optional(),
 });
@@ -29,6 +30,7 @@ valuationRouter.get('/valuation', async (req, res) => {
         year: parsed.data.year,
         mileage: parsed.data.mileage,
         version: parsed.data.version?.trim() || undefined,
+        condition: parsed.data.condition,
       },
       { useCache: !parsed.data.refresh },
     );

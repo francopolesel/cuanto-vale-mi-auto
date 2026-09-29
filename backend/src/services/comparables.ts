@@ -108,8 +108,15 @@ export function scoreComparable(
   const yearSimilarity = getYearSimilarityWeight(criteria.year, listingYear, yearWindow);
   const versionSimilarity = model.score > 0 ? getVersionSimilarity(title, criteria.model, criteria.version) : 0;
   const mileageSimilarity = model.score > 0 ? getMileageSimilarity(mileage, criteria.mileage) : 0;
+  // 0 km search: boost zero-km comparables, down-weight clearly used ones.
+  // Listings without mileage info stay usable (never destroyed).
+  let conditionFactor = 1.0;
+  if (criteria.condition === 'NEW') {
+    if (mileage != null && mileage <= 500) conditionFactor = 1.2;
+    else if (mileage != null && mileage > 5000) conditionFactor = 0.5;
+  }
   // Missing mileage slightly lowers comparability; never destroys it.
-  const mileageFactor = mileage != null ? 1.0 : 0.95;
+  const mileageFactor = (mileage != null ? 1.0 : 0.95) * conditionFactor;
   const total = model.score * yearSimilarity * versionSimilarity * mileageSimilarity * mileageFactor;
 
   let level: MatchLevel = 'INVALID';

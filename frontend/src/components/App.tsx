@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ValuationResponse } from '../types';
-import { fmtARS, fmtUSD, fmtNum, fmtShort } from '../types';
+import { fmtARS, fmtUSD, fmtNum, fmtShort, titleCase } from '../types';
 
 const BRANDS = ['Toyota', 'Volkswagen', 'Ford', 'Chevrolet', 'Renault', 'Peugeot', 'Fiat', 'Honda', 'Nissan', 'Citroen', 'Jeep', 'Audi', 'BMW', 'Mercedes Benz', 'Kia', 'Hyundai'];
 const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
@@ -11,6 +11,7 @@ interface HistoryEntry {
   model: string;
   year: number;
   price: number;
+  isNew: boolean;
 }
 
 type Theme = 'light' | 'dark';
@@ -34,13 +35,14 @@ function loadHistory(): HistoryEntry[] {
   }
 }
 
-type SortKey = 'price-asc' | 'price-desc' | 'km-asc';
+type SortKey = 'price-asc' | 'price-desc' | 'km-asc' | 'km-desc';
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState(new Date().getFullYear() - 5);
+  const [isNew, setIsNew] = useState(false);
   const [mileage, setMileage] = useState('');
   const [version, setVersion] = useState('');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
@@ -50,6 +52,7 @@ export function App() {
   const [failed, setFailed] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [showListings, setShowListings] = useState(false);
+  const [searchedNew, setSearchedNew] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [sort, setSort] = useState<SortKey>('price-asc');
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
@@ -80,7 +83,7 @@ export function App() {
     return () => clearTimeout(t);
   }, [loading]);
 
-  async function search(b = brand, m = model, y = year, km = mileage, ver = version) {
+  async function search(b = brand, m = model, y = year, km = mileage, ver = version, now = isNew) {
     if (!b.trim()) {
       setFormError('Elegí una marca para continuar.');
       return;
@@ -104,6 +107,7 @@ export function App() {
       const params = new URLSearchParams({ brand: b.trim(), model: m.trim(), year: String(y) });
       if (kmNum) params.set('mileage', String(kmNum));
       if (ver.trim()) params.set('version', ver.trim());
+      if (now) params.set('condition', 'NEW');
       const r = await fetch(`/api/valuation?${params}`);
       if (!r.ok) throw new Error();
       const json = (await r.json()) as ValuationResponse;
@@ -112,7 +116,8 @@ export function App() {
         return;
       }
       setData(json);
-      setHistory((h) => [{ brand: b.trim(), model: m.trim(), year: y, price: json.valuation!.average }, ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y))].slice(0, 6));
+      setSearchedNew(now);
+      setHistory((h) => [{ brand: b.trim(), model: m.trim(), year: y, price: json.valuation!.average, isNew: now }, ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y))].slice(0, 6));
     } catch {
       setFailed(true);
     } finally {
@@ -147,7 +152,11 @@ export function App() {
         const pa = a.priceARS ?? a.price;
         const pb = b.priceARS ?? b.price;
         if (sort === 'price-desc') return pb - pa;
-        if (sort === 'km-asc') return (a.mileage ?? Number.MAX_SAFE_INTEGER) - (b.mileage ?? Number.MAX_SAFE_INTEGER);
+        if (sort === 'km-asc' || sort === 'km-desc') {
+          const ka = a.mileage ?? (sort === 'km-asc' ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
+          const kb = b.mileage ?? (sort === 'km-asc' ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
+          return sort === 'km-asc' ? ka - kb : kb - ka;
+        }
         return pa - pb;
       })
     : [];
@@ -191,9 +200,20 @@ export function App() {
                 </label>
                 <label htmlFor="year">
                   Año
-                  <select id="year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+                  <select id="year" value={year} onChange={(e) => setYear(Number(e.target.value))} disabled={isNew}>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
+                </label>
+                <label className="check" htmlFor="is-new">
+                  <input id="is-new" type="checkbox" checked={isNew} onChange={(e) => {
+                    const v = e.target.checked;
+                    setIsNew(v);
+                    if (v) {
+                      setYear(new Date().getFullYear());
+                      setMileage('');
+                    }
+                  }} />
+                  Es 0 km
                 </label>
                 <button className="cta" type="submit">Buscar valor</button>
               </div>
@@ -217,8 +237,8 @@ export function App() {
               <section className="history" aria-label="Últimas búsquedas">
                 <h2>Últimas búsquedas</h2>
                 {history.map((h, i) => (
-                  <button key={i} type="button" onClick={() => { setBrand(h.brand); setModel(h.model); setYear(h.year); search(h.brand, h.model, h.year); }}>
-                    <span>{h.brand} {h.model} {h.year}</span>
+                  <button key={i} type="button" onClick={() => { setBrand(h.brand); setModel(h.model); setYear(h.year); setIsNew(h.isNew); setMileage(''); setVersion(''); search(h.brand, h.model, h.year, '', '', h.isNew); }}>
+                    <span>{titleCase(h.brand)} {titleCase(h.model)} {h.year}{h.isNew ? ' · 0 km' : ''}</span>
                     <small>{fmtShort(h.price)}</small>
                   </button>
                 ))}
@@ -248,8 +268,8 @@ export function App() {
         {data && v && !showListings && (
           <section aria-labelledby="result-title">
             <div className="vehicle">
-              <h1 id="result-title">{data.vehicle.brand} {data.vehicle.model}</h1>
-              <p>{data.vehicle.year}</p>
+              <h1 id="result-title">{titleCase(data.vehicle.brand)} {titleCase(data.vehicle.model)}</h1>
+              <p>{data.vehicle.year}{searchedNew ? ' · 0 km' : ''}</p>
             </div>
             <p className="question">¿Cuánto vale?</p>
             <p className="price">{fmt(v.average)}</p>
@@ -296,11 +316,10 @@ export function App() {
               <button type="button" className="back" onClick={backToResult} aria-label="Volver a la valuación">
                 <span className="arrow" aria-hidden="true">←</span> Volver a la valuación
               </button>
-              <span className="where">{data.vehicle.brand} {data.vehicle.model} {data.vehicle.year}</span>
             </div>
             <div className="listings-head">
               <h1 id="listings-title">Publicaciones</h1>
-              <p>{data.vehicle.brand} {data.vehicle.model} {data.vehicle.year} · {sorted.length} avisos</p>
+              <p>{titleCase(data.vehicle.brand)} {titleCase(data.vehicle.model)} {data.vehicle.year}{searchedNew ? ' · 0 km' : ''} · {sorted.length} avisos</p>
             </div>
             <div className="sort-row">
               <label htmlFor="sort">Ordenar por:</label>
@@ -308,6 +327,7 @@ export function App() {
                 <option value="price-asc">Precio más bajo</option>
                 <option value="price-desc">Precio más alto</option>
                 <option value="km-asc">Menor kilometraje</option>
+                <option value="km-desc">Mayor kilometraje</option>
               </select>
             </div>
             {sorted.slice(0, visible).map((l, i) => (

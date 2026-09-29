@@ -40,6 +40,6 @@ export function cacheSet(key: string, payload: string): void {
   }
 }
 
-export function cacheKey(brand: string, model: string, year: number, mileage?: number, version?: string): string {
-  return `${brand.toLowerCase()}|${model.toLowerCase()}|${year}|${mileage ?? ''}|${(version ?? '').toLowerCase()}`;
+export function cacheKey(brand: string, model: string, year: number, mileage?: number, version?: string, condition?: string): string {
+  return `${brand.toLowerCase()}|${model.toLowerCase()}|${year}|${mileage ?? ''}|${(version ?? '').toLowerCase()}|${condition ?? ''}`;
 }

@@ -12,6 +12,8 @@ export interface SearchCriteria {
   /** Optional filters: soft weights, never hard gates (see comparables.ts). */
   mileage?: number;
   version?: string;
+  /** "NEW" = user is looking for a 0 km car: zero-km comparables weigh more. */
+  condition?: 'NEW';
 }
 
 export interface CarListing {

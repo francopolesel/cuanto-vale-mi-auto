@@ -136,7 +136,7 @@ function fmtKm(km?: number): string {
 }
 
 export async function runValuation(criteria: SearchCriteria, opts: { useCache?: boolean } = {}): Promise<ValuationResponse> {
-  const key = cacheKey(criteria.brand, criteria.model, criteria.year, criteria.mileage, criteria.version);
+  const key = cacheKey(criteria.brand, criteria.model, criteria.year, criteria.mileage, criteria.version, criteria.condition);
   if (opts.useCache !== false) {
     const hit = cacheGet(key);
     if (hit) {

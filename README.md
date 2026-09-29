@@ -1,141 +1,114 @@
-# Cuánto vale mi auto — Valuador argentino de usados
+<div align="center">
 
-App web que estima el valor de mercado de un auto usado en Argentina a partir de **publicaciones reales** (Mercado Libre, Autocosmos, Kavak, DeMotores), con análisis estadístico propio, sin IA ni servicios pagos.
+![Cuánto vale mi auto](frontend/public/logo.png)
 
-## Qué hace
+# Cuánto vale mi auto
 
-Ingresás `Marca + Modelo + Año` → el backend consulta múltiples fuentes, normaliza, filtra, deduplica, elimina outliers, convierte USD→ARS con cotización gratuita (DolarAPI) y devuelve:
+### ¿Cuánto vale tu auto? Escribí marca, modelo y año — y enterate.
 
-- Rango estimado (P10–P90), promedio, mediana
-- Mismo rango en ARS y USD (toggle en la UI, dólar oficial por defecto)
-- Min/max observados, percentiles, desvío, cantidad de publicaciones, fuentes, distribución (histograma), versiones, kilometraje mediano, nivel de confianza, lista de publicaciones con link, fecha/hora y metodología.
+Valuador automático de autos usados argentinos basado en **publicaciones reales**,
+estadística robusta y un motor de **comparables ponderados**. Sin IA externa, sin APIs pagas, sin humo.
 
-## Arquitectura
+[**🇬🇧 Read in English**](README.en.md) · [**🚀 Demo en vivo**](#-demo) · [**✨ Features**](#-qué-hace) · [**🧠 Cómo funciona**](#-cómo-funciona-por-dentro)
 
-```
-frontend/ (React + TS + Vite)
-backend/src/
-  scrapers/      MercadoLibre (API pública) · Autocosmos (HTML+JSON-LD) · Kavak (HTML/JSON) · DeMotores (HTML)
-  services/      exchangeRate · normalizer · filter · deduplicator · statistics · confidence · orchestrator · cache
-  routes/        GET /api/valuation · GET /api/dollar · GET /api/brands
-```
+![Tests](https://img.shields.io/badge/tests-27%2F27-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-estricto-blue)
+![Stack](https://img.shields.io/badge/React%20%2B%20Node%20%2B%20SQLite-informational)
+![Costo](https://img.shields.io/badge/costo-%240-success)
 
-Pipeline: `RAW → NORMALIZE (ARS) → HARD-FILTER (solo inválidos) → DEDUPLICATE → TIME-ADJUST (Theil-Sen) → OUTLIERS (IQR/MAD) → WEIGHTED STATISTICS → VALUATION (P10–P90 ponderados) → CONFIDENCE`.
+</div>
 
-## Valuación por comparables (búsqueda progresiva)
+---
 
-El sistema NO exige coincidencias exactas para estimar. Cada publicación recibe un
-**peso de similitud** `total = modelo × año × versión × kilometraje`:
+## 🎯 El problema
 
-- **Modelo** (genérico, sin reglas por vehículo): marca con alias + primer token del modelo
-  obligatorios; todos los tokens → `EXACT` (1.0); familia/variante (`Gol` vs `Gol Trendline`) → `VARIANT` (0.8–0.9); otra cosa → `INVALID` (se descarta).
-- **Año**: peso gradual 1.0 → 0.9 (±1) → 0.75 (±2) → 0.55 (±3); fuera de `YEAR_WINDOW` (default ±3) se descarta.
-- **Versión**: si la búsqueda incluye tokens extra (ej. `Corolla XEI`), bonifica títulos que los contengan; con búsqueda base no penaliza.
-- **Kilometraje**: presente 1.0, ausente 0.95 (resta, no destruye).
+En Argentina, saber cuánto vale un auto usado es un caos: precios en pesos y dólares,
+anticipos disfrazados de precio, versiones con nombres distintos según el sitio y
+mercados que cambian todas las semanas. Las "guías" quedan viejas y los tasadores cobran.
 
-**Fases**: LEVEL 1 (búsqueda exacta + pipeline completo) → si los comparables/peso efectivo
-no alcanzan los umbrales (`MIN_COMPARABLES=8`, `MIN_EFFECTIVE_WEIGHT=5`), LEVEL 2-3
-re-busca el modelo **sin año** (más páginas) y re-ejecuta el pipeline sobre todo lo
-acumulado → LEVEL 4-5 pondera variantes y años cercanos. La decisión de ampliar usa el
-resultado del pipeline, nunca un conteo crudo previo.
+**Cuánto vale mi auto** responde una sola pregunta, con datos de hoy:
 
-**Ajuste temporal**: medianas por año + tendencia robusta Theil-Sen; solo con ≥3 años de
-≥4 muestras y pendiente verosímil (≤40% de la mediana/año). Si no, passthrough documentado.
+> **Volkswagen Gol Trend 2017 → $14.000.000 — $17.460.000**
 
-**Estimación**: media/mediana/P10–P90 **ponderados** sobre precios ajustados; rango = P10–P90
-ponderados.
-**Filtros opcionales** (`mileage`, `version`): son pesos suaves, nunca compuertas.
-El km pondera por cercanía (decaimiento gaussiano) y, con ≥15 comparables con km,
-normaliza precios con tendencia robusta decreciente; la versión bonifica coincidencias.
-Si la muestra sigue corta, el pipeline relaja versión y luego km (LEVEL 6) y lo informa
-en `appliedFilters.relaxed`. La confianza (ALTA/MEDIA/BAJA) es una salida: muestra efectiva, % exactos,
-fuentes, dispersión (CV) y calidad de datos. `INSUFICIENTE` solo si no hay base ni con
-comparables. La respuesta incluye `comparables.byYear`, `methodology` narrativa y objeto
-`debug` con fases, matching y filtrado.
+---
 
-Agregar una fuente = crear una clase `CarDataSource` en `src/scrapers/` y registrarla en `registry.ts`. Ningún cambio al núcleo.
+## ✨ Qué hace
 
-## Dólar (ARS + USD)
+- 🔍 **Scraping real multi-fuente** — Mercado Libre, Autocosmos, Kavak, DeMotores (adaptadores independientes, si una fuente cae las demás siguen).
+- ⚖️ **Valuación por comparables** — cada publicación recibe un peso de similitud (modelo × año × versión × kilometraje). Nada de promedios crudos.
+- 📈 **Búsqueda progresiva** — si hay pocos datos exactos, amplía a años cercanos, re-busca sin año y relaja filtros opcionales antes de rendirse.
+- 💱 **ARS + USD** — conversión con dólar oficial en vivo (DolarAPI, gratuita), siempre declarada.
+- 🚗 **0 km y usados** — búsqueda 0 km con comparables priorizados; filtros opcionales de kilometraje y versión que ponderan, nunca excluyen.
+- 📊 **Estadística honesta** — mediana/promedio/P10–P90 ponderados, outliers por IQR/MAD, ajuste temporal Theil-Sen, nivel de confianza explicable.
+- ♿ **Accesible de verdad** — contraste alto, tipografía grande, botones ≥48px, navegación por teclado, modo claro/oscuro, 100% español simple.
 
-- Fuente: **DolarAPI** (`https://dolarapi.com/v1/dolares/<tipo>`), pública y gratuita, sin key.
-- Estrategia por defecto: `OFICIAL` (el más representativo para precios de vehículos en concesionarias argentinas); fallback `mayorista/bolsa/blue` si el tipo pedido falla. Todo queda registrado en `exchangeRate { source, strategy, arsPerUsd, fetchedAt, fallback }` y visible en la UI.
-- La UI muestra el toggle **ARS/USD**; los USD se derivan del rango ARS con el mismo tipo de cambio (no se inventa otro).
+---
 
-## Instalación / ejecución
+## 🚀 Demo
+
+👉 **Próximamente en Render** (deploy automático desde `main` con el `render.yaml` incluido).
+
+O corrélo local en 2 comandos:
 
 ```bash
 npm install
-npm run dev      # backend :3000 + frontend :5173
-# o por separado:
-npm run dev --workspace=backend
-npm run dev --workspace=frontend
-npm run build
-npm start        # backend compilado
-npm test --workspace=backend
+npm run dev
 ```
 
-Abrí http://localhost:5173 → Marca: Toyota, Modelo: Corolla, Año: 2020 → Buscar valor.
+Abrí 👉 http://localhost:5173 → probá `Volkswagen Gol Trend 2017`.
 
-## Cómo compartirlo con amigos (deploy gratis)
+---
 
-La forma más fácil: **Render (plan free) con el `render.yaml` incluido**.
-El backend sirve al frontend desde el mismo origen, así que es un solo servicio y un solo link.
-
-1. Subí el repo a GitHub.
-2. Creá una cuenta en Render y elegí **New → Blueprint**, conectá el repo.
-3. Render detecta `render.yaml` y crea el servicio `cuanto-vale-mi-auto` (plan free).
-4. Abrí la URL que te da Render y pasala. Listo.
-
-Atajos y advertencias honestas:
-
-- El plan free "duerme" el servicio sin tráfico: la primera visita puede tardar ~1 min en despertar.
-- La caché SQLite es efímera en Render (se pierde con cada deploy/reinicio); no guarda nada importante.
-- El scraping corre desde IPs de datacenter: algunos sitios bloquean más que desde tu casa. Si una fuente falla, la app sigue con las demás y lo muestra.
-- Alternativa instantánea sin deploy (para probar con alguien al lado): corré `npm run build` + `npm start` y exponé el puerto 3000 con un túnel (ej. Cloudflare Tunnel: `cloudflared tunnel --url http://localhost:3000`). El link dura lo que dure tu PC encendida.
-
-## Variables de entorno (backend/.env)
+## 🧠 Cómo funciona (por dentro)
 
 ```
-PORT=3000
-SCRAPE_DELAY_MS=400
-MAX_CONCURRENT_SCRAPERS=3
-REQUEST_TIMEOUT_MS=15000
-CACHE_TTL_MINUTES=60
-MAX_PAGES_PER_SOURCE=4
-MAX_LISTINGS_PER_SOURCE=120
-DOLLAR_STRATEGY=OFICIAL
-FRONTEND_ORIGIN=http://localhost:5173
+Usuario: marca + modelo + año (+ filtros opcionales)
+  ↓
+LEVEL 1 · Búsqueda exacta en todas las fuentes
+  ↓ ¿Alcanzan los comparables?
+  NO ↓
+LEVEL 2-3 · Re-búsqueda amplia (modelo sin año, más páginas)
+  ↓
+LEVEL 4-5 · Scoring de similitud + ajuste temporal/km + outliers + stats ponderadas
+  ↓
+LEVEL 6 · Relajación de filtros opcionales (avisada, nunca silenciosa)
+  ↓
+Estimación + confianza + metodología transparente (objeto debug en la API)
 ```
 
-## UI
+**Regla de oro**: la falta de publicaciones idénticas **no** significa que no se pueda estimar.
+Solo se dice "sin datos suficientes" cuando no hay nada ni siquiera con comparables.
 
-Filosofía ("Cuánto vale mi auto"): herramienta clara y accesible. Una sola pregunta —
-¿cuánto vale tu auto? — con formulario etiquetado (marca/modelo/año), precio protagonista,
-rango secundario, toggle Pesos/Dólares, historial local y pantalla de publicaciones con
-header sticky para volver. Modos claro y oscuro con tokens, contraste alto, botones ≥48px
-y navegación por teclado. Sin dashboards, gráficos, ni jerga del algoritmo en la interfaz.
+---
 
-## Fuentes y scraping responsable
+## 🛠️ Stack
 
-- Mercado Libre: API pública de búsqueda (`api.mercadolibre.com/sites/MLA/search`), sin browser.
-  Nota 2026: ese endpoint devuelve `403` para búsquedas web; el scraper lo intenta igual y cae automáticamente
-  al plan B: HTML de `autos.mercadolibre.com.ar` + JSON embebido `__NORDIC_RENDERING_CTX__` (parseo lineal, sin regex gigantes).
-- Resto: `fetch` + JSON-LD → HTML tolerante → texto visible. Sin Playwright obligatorio (se puede añadir solo si una fuente lo exige), sin CAPTCHA-bypass, sin login, con timeout, retries limitados, concurrencia ≤3, delay entre fuentes, paginación acotada y cache 60 min. Si una fuente falla → `success:false` y el sistema sigue con las demás.
+| Capa | Tecnologías |
+|---|---|
+| Frontend | React 19 · TypeScript · Vite · CSS con tokens (light/dark) |
+| Backend | Node.js · Express · TypeScript estricto · Zod |
+| Datos | Scraping HTTP + JSON-LD (sin browser) · SQLite (caché) |
+| Calidad | 27 tests (unit + fixtures HTML reales) · builds verificados |
 
-## Metodología
+**Todo gratuito**: cero APIs pagas, cero proxies, cero LLMs. La inteligencia es código determinístico.
 
-Filtrado duro (sin precio/año válido, anticipo/cuota, precio absurdo, marca/modelo fuera de
-familia, año fuera de ventana) → scoring de similitud → dedup (sourceId/URL + fuzzy
-título+año+km+precio±2%) → ajuste temporal Theil-Sen → outliers IQR/MAD sobre precios
-ajustados → stats ponderadas (P10–P90, media, mediana) → valuación + confianza de salida.
-Ver sección "Valuación por comparables".
+---
 
-## Limitaciones
+## 📁 Estructura
 
-- Los sitios cambian: los selectores son tolerantes pero alguna fuente puede caer (se informa en la UI).
-- 0 km se etiqueta `NEW_OR_NEAR_NEW`; versiones se agrupan y muestran, no se separan en la valuación v1.
-- Guía CCA/Autocosmos: no se mezcla con el observado (se puede agregar como referencia separada a futuro).
+```
+frontend/          # React + Vite (UI accesible, ES simple)
+backend/
+  src/scrapers/    # Un adaptador por fuente (CarDataSource)
+  src/services/    # comparables · timeAdjust · mileageAdjust · statistics · confidence
+  fixtures/        # HTML reales para tests sin internet
+Dockerfile + render.yaml  # Deploy en un click
+```
 
-## Tests
+Agregar una fuente = una clase + una línea en `registry.ts`. Sin tocar el núcleo.
 
-`npm test --workspace=backend` — unit (normalización, precios, km, años, FX, dedup, outliers, media/mediana/percentiles, validación) + fixtures HTML (`backend/fixtures/`) para `HTML → parser → CarListing` sin internet.
+---
+
+## 👤 Autor
+
+**Franco Polesel** — [✉ Email](mailto:francopolesel99@gmail.com) · [GitHub](https://github.com/francopolesel) · [LinkedIn](https://ar.linkedin.com/in/franco-paul-polesel)

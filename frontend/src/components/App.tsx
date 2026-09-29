@@ -43,7 +43,7 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear() - 5);
+  const [year, setYear] = useState<number | ''>('');
   const [mileage, setMileage] = useState('');
   const [version, setVersion] = useState('');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
@@ -91,6 +91,10 @@ export function App() {
     }
     if (!m.trim()) {
       setFormError('Escribí el modelo para continuar.');
+      return;
+    }
+    if (y === '') {
+      setFormError('Elegí un año para continuar.');
       return;
     }
     const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
@@ -206,7 +210,8 @@ export function App() {
                 </label>
                 <label htmlFor="year">
                   Año
-                  <select id="year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+                  <select id="year" value={year} onChange={(e) => setYear(e.target.value === '' ? '' : Number(e.target.value))} required>
+                    <option value="" disabled>Año</option>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </label>

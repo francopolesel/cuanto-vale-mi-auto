@@ -329,6 +329,7 @@ details.more .body p { margin: 8px 0; }
 details.more .body strong { color: var(--color-text-primary); }
 
 details.filters { margin-top: 4px; }
+.form-3 details.filters { grid-column: 1 / -1; }
 details.filters summary {
   display: inline-flex;
   align-items: center;

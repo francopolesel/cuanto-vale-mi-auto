@@ -215,6 +215,19 @@ export function App() {
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </label>
+                <details className="filters">
+                  <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
+                  <div className="filters-body">
+                    <label htmlFor="mileage">
+                      Kilometraje aproximado (0 si es 0 km)
+                      <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="Kilometraje..." autoComplete="off" />
+                    </label>
+                    <label htmlFor="version">
+                      Versión
+                      <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Versión..." autoComplete="off" />
+                    </label>
+                  </div>
+                </details>
                 <button className="cta" type="submit">Buscar valor</button>
                 <button
                   className="btn-secondary"
@@ -238,19 +251,6 @@ export function App() {
                   Limpiar
                 </button>
               </div>
-              <details className="filters">
-                <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
-                <div className="filters-body">
-                  <label htmlFor="mileage">
-                    Kilometraje aproximado (0 si es 0 km)
-                    <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="Kilometraje..." autoComplete="off" />
-                  </label>
-                  <label htmlFor="version">
-                    Versión
-                    <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Versión..." autoComplete="off" />
-                  </label>
-                </div>
-              </details>
             </form>
             {formError && <p className="form-error" role="alert">{formError}</p>}
             {!formError && <p className="hint">Con la marca, el modelo y el año alcanza.</p>}

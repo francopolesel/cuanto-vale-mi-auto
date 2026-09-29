@@ -197,12 +197,12 @@ export function App() {
               <div className="form-3" style={{ display: 'grid', gap: 18 }}>
                 <label htmlFor="brand">
                   Marca
-                  <input id="brand" list="brands" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Volkswagen" autoComplete="off" />
+                  <input id="brand" list="brands" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Ej: Fiat" autoComplete="off" />
                   <datalist id="brands">{BRANDS.map((b) => <option key={b} value={b} />)}</datalist>
                 </label>
                 <label htmlFor="model">
                   Modelo
-                  <input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Gol Trend" autoComplete="off" />
+                  <input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ej: Siena" autoComplete="off" />
                 </label>
                 <label htmlFor="year">
                   Año
@@ -217,11 +217,11 @@ export function App() {
                 <div className="filters-body">
                   <label htmlFor="mileage">
                     Kilometraje aproximado (0 si es 0 km)
-                    <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="170.000" autoComplete="off" />
+                    <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="Ej: 120.000" autoComplete="off" />
                   </label>
                   <label htmlFor="version">
                     Versión
-                    <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="2.0" autoComplete="off" />
+                    <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Ej: Absolute" autoComplete="off" />
                   </label>
                 </div>
               </details>

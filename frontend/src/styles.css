@@ -338,7 +338,7 @@ details.filters { margin-top: 4px; }
   align-items: stretch;
 }
 .tools-row details.filters { margin-top: 0; }
-.tools-row details.filters summary { width: 100%; height: 100%; }
+.tools-row details.filters summary { width: 100%; }
 .tools-row .filters-body { margin-top: 12px; }
 .tools-row .btn-clean { width: 100%; }
 

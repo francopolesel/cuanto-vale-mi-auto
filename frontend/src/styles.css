@@ -86,6 +86,11 @@ html, body {
   object-fit: contain;
 }
 
+/* Single transparent logo: invert it for dark mode (alpha channel is preserved). */
+[data-theme='dark'] .navbar .brand-logo {
+  filter: invert(1);
+}
+
 .theme-toggle {
   min-width: 48px;
   min-height: 48px;

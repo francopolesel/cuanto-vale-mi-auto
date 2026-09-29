@@ -12,6 +12,8 @@ interface HistoryEntry {
   year: number;
   price: number;
   isNew: boolean;
+  mileage: string;
+  version: string;
 }
 
 type Theme = 'light' | 'dark';
@@ -42,7 +44,6 @@ export function App() {
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState(new Date().getFullYear() - 5);
-  const [isNew, setIsNew] = useState(false);
   const [mileage, setMileage] = useState('');
   const [version, setVersion] = useState('');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
@@ -83,7 +84,7 @@ export function App() {
     return () => clearTimeout(t);
   }, [loading]);
 
-  async function search(b = brand, m = model, y = year, km = mileage, ver = version, now = isNew) {
+  async function search(b = brand, m = model, y = year, km = mileage, ver = version) {
     if (!b.trim()) {
       setFormError('Elegí una marca para continuar.');
       return;
@@ -93,10 +94,11 @@ export function App() {
       return;
     }
     const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
-    if (km.trim() !== '' && (!kmNum || kmNum <= 0)) {
+    if (km.trim() !== '' && kmNum == null) {
       setFormError('Ingresá un kilometraje válido.');
       return;
     }
+    const now = kmNum === 0;
     setFormError(null);
     setLoading(true);
     setFailed(false);
@@ -117,7 +119,7 @@ export function App() {
       }
       setData(json);
       setSearchedNew(now);
-      setHistory((h) => [{ brand: b.trim(), model: m.trim(), year: y, price: json.valuation!.average, isNew: now }, ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y))].slice(0, 6));
+      setHistory((h) => [{ brand: b.trim(), model: m.trim(), year: y, price: json.valuation!.average, isNew: now, mileage: km, version: ver.trim() }, ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y))].slice(0, 6));
     } catch {
       setFailed(true);
     } finally {
@@ -204,20 +206,9 @@ export function App() {
                 </label>
                 <label htmlFor="year">
                   Año
-                  <select id="year" value={year} onChange={(e) => setYear(Number(e.target.value))} disabled={isNew}>
+                  <select id="year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
-                </label>
-                <label className="check" htmlFor="is-new">
-                  <input id="is-new" type="checkbox" checked={isNew} onChange={(e) => {
-                    const v = e.target.checked;
-                    setIsNew(v);
-                    if (v) {
-                      setYear(new Date().getFullYear());
-                      setMileage('');
-                    }
-                  }} />
-                  Es 0 km
                 </label>
                 <button className="cta" type="submit">Buscar valor</button>
               </div>
@@ -225,7 +216,7 @@ export function App() {
                 <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
                 <div className="filters-body">
                   <label htmlFor="mileage">
-                    Kilometraje aproximado
+                    Kilometraje aproximado (0 si es 0 km)
                     <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="170.000" autoComplete="off" />
                   </label>
                   <label htmlFor="version">
@@ -241,7 +232,7 @@ export function App() {
               <section className="history" aria-label="Últimas búsquedas">
                 <h2>Últimas búsquedas</h2>
                 {history.map((h, i) => (
-                  <button key={i} type="button" onClick={() => { setBrand(h.brand); setModel(h.model); setYear(h.year); setIsNew(h.isNew); setMileage(''); setVersion(''); search(h.brand, h.model, h.year, '', '', h.isNew); }}>
+                  <button key={i} type="button" onClick={() => { setBrand(h.brand); setModel(h.model); setYear(h.year); setMileage(h.mileage ?? ''); setVersion(h.version ?? ''); search(h.brand, h.model, h.year, h.mileage ?? '', h.version ?? ''); }}>
                     <span>{titleCase(h.brand)} {titleCase(h.model)} {h.year}{h.isNew ? ' · 0 km' : ''}</span>
                     <small>{fmtShort(h.price)}</small>
                   </button>

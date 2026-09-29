@@ -1,6 +1,9 @@
 <div align="center">
 
-![Cuánto vale mi auto](frontend/public/logo.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/public/logo-dark-mode.jpg">
+  <img src="frontend/public/logo.png" alt="Cuánto vale mi auto" width="420">
+</picture>
 
 # Cuánto vale mi auto
 

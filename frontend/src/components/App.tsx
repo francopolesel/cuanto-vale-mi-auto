@@ -172,7 +172,7 @@ export function App() {
       <header className="navbar">
         <a className="brand" href="#" onClick={(e) => { e.preventDefault(); reset(); }} aria-label="Cuánto vale mi auto - inicio">
           <img
-            src={theme === 'dark' ? '/logo-dark-mode.svg' : '/logo-light-mode.svg'}
+            src={theme === 'dark' ? '/logo-dark-mode.jpg' : '/logo-light-mode.jpg'}
             alt="Cuánto vale mi auto"
             className="brand-logo"
           />

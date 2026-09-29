@@ -80,9 +80,9 @@ html, body {
 }
 
 .navbar .brand-logo {
-  height: 44px;
+  height: 56px;
   width: auto;
-  max-width: 240px;
+  max-width: 260px;
   object-fit: contain;
 }
 

@@ -329,15 +329,16 @@ details.more .body p { margin: 8px 0; }
 details.more .body strong { color: var(--color-text-primary); }
 
 details.filters { margin-top: 4px; }
-.form-3 details.filters {
+.form-3 details.filters { grid-column: 1 / -1; }
+.tools-row {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: stretch;
 }
-.form-3 details.filters summary { width: 100%; }
-.form-3 details.filters .filters-body { grid-column: 1 / -1; }
+.tools-row details.filters { flex: 1; margin-top: 0; }
+.tools-row details.filters summary { width: 100%; height: 100%; }
+.tools-row .filters-body { margin-top: 12px; }
 .btn-clean { min-height: 52px; white-space: nowrap; }
 details.filters summary {
   display: inline-flex;

@@ -215,8 +215,23 @@ export function App() {
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </label>
-                <details className="filters">
-                  <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
+                <div className="tools-row">
+                  <details className="filters">
+                    <summary>Filtros opcionales <span className="chevron" aria-hidden="true">▾</span></summary>
+                    <div className="filters-body">
+                      <label htmlFor="mileage">
+                        Kilometraje aproximado (0 si es 0 km)
+                        <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 7);
+                        setMileage(digits === '' ? '' : new Intl.NumberFormat('es-AR').format(Number(digits)));
+                      }} placeholder="Kilometraje..." autoComplete="off" />
+                      </label>
+                      <label htmlFor="version">
+                        Versión
+                        <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Versión..." autoComplete="off" />
+                      </label>
+                    </div>
+                  </details>
                   <button
                     className="btn-secondary btn-clean"
                     type="button"
@@ -238,20 +253,7 @@ export function App() {
                     </svg>
                     Limpiar
                   </button>
-                  <div className="filters-body">
-                    <label htmlFor="mileage">
-                      Kilometraje aproximado (0 si es 0 km)
-                      <input id="mileage" inputMode="numeric" value={mileage} onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '').slice(0, 7);
-                      setMileage(digits === '' ? '' : new Intl.NumberFormat('es-AR').format(Number(digits)));
-                    }} placeholder="Kilometraje..." autoComplete="off" />
-                    </label>
-                    <label htmlFor="version">
-                      Versión
-                      <input id="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Versión..." autoComplete="off" />
-                    </label>
-                  </div>
-                </details>
+                </div>
                 <button className="cta" type="submit">Buscar valor</button>
               </div>
             </form>

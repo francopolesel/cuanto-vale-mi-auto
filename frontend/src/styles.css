@@ -329,7 +329,16 @@ details.more .body p { margin: 8px 0; }
 details.more .body strong { color: var(--color-text-primary); }
 
 details.filters { margin-top: 4px; }
-.form-3 details.filters { grid-column: 1 / -1; }
+.form-3 details.filters {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.form-3 details.filters summary { width: 100%; }
+.form-3 details.filters .filters-body { grid-column: 1 / -1; }
+.btn-clean { min-height: 52px; white-space: nowrap; }
 details.filters summary {
   display: inline-flex;
   align-items: center;

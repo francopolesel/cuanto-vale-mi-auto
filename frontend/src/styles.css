@@ -314,6 +314,14 @@ main {
 }
 .btn-secondary:hover { border-color: var(--color-accent); }
 
+a.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
 details.more { margin-top: 28px; border: 1px solid var(--color-border); border-radius: 12px; }
 details.more summary {
   min-height: 56px;

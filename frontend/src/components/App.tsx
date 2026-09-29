@@ -153,6 +153,11 @@ export function App() {
   const v = currency === 'USD' ? data?.valuationUSD : data?.valuation;
   const fmt = currency === 'USD' ? fmtUSD : fmtARS;
 
+  const shareText = data && v
+    ? `${titleCase(data.vehicle.brand)} ${titleCase(data.vehicle.model)} ${data.vehicle.year}${searchedNew ? ' 0 km' : ''}\nValor estimado: ${fmt(v.average)}\nRango: ${fmt(v.min)} - ${fmt(v.max)}\nCalculá el valor de tu auto acá: ${window.location.origin}`
+    : '';
+  const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
   const sorted = data
     ? [...data.listings].sort((a, b) => {
         const pa = a.priceARS ?? a.price;
@@ -314,6 +319,12 @@ export function App() {
             </div>
             <div className="actions">
               <button type="button" className="btn-primary" onClick={goListings}>Ver publicaciones</button>
+              <a className="btn-secondary btn-share" href={shareUrl} target="_blank" rel="noreferrer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm-3.2 4.1c-.2 0-.5 0-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 3 4.7 4.1 2.3.9 2.8.7 3.3.7.5-.1 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.1l-.9 1.1c-.2.2-.3.2-.6.1a7.6 7.6 0 0 1-2.2-1.4 8.3 8.3 0 0 1-1.5-1.9c-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5L9.3 8.5c-.2-.4-.4-.4-.5-.4z" />
+                </svg>
+                Compartir por WhatsApp
+              </a>
               <button type="button" className="btn-secondary" onClick={reset}>Buscar otro auto</button>
             </div>
             <details className="more">

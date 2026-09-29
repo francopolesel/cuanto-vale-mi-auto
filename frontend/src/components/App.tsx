@@ -248,11 +248,12 @@ export function App() {
         )}
 
         {loading && (
-          <section aria-live="polite">
+          <section aria-live="polite" className="loading">
             <p className="status">
               Buscando el valor de tu auto…
               {slow && <small>Estamos revisando publicaciones del mercado, ya casi está.</small>}
             </p>
+            <div className="loader" role="status" aria-label="Cargando" />
           </section>
         )}
 

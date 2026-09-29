@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ValuationResponse } from '../types';
 import { fmtARS, fmtUSD, fmtNum, fmtShort, titleCase } from '../types';
 
@@ -37,6 +37,28 @@ function loadHistory(): HistoryEntry[] {
   }
 }
 
+function formatMileageEsAR(digits: string): string {
+  if (digits === '') return '';
+  return new Intl.NumberFormat('es-AR').format(Number(digits));
+}
+
+function buildSearchUrl(b: string, m: string, y: number | '', km: string, ver: string): string {
+  const params = new URLSearchParams({ brand: b.trim(), model: m.trim(), year: String(y) });
+  const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
+  if (kmNum != null && !Number.isNaN(kmNum)) params.set('mileage', String(kmNum));
+  if (ver.trim()) params.set('version', ver.trim());
+  if (kmNum === 0) params.set('condition', 'NEW');
+  return `${window.location.origin}${window.location.pathname}?${params}`;
+}
+
+function syncUrl(b: string, m: string, y: number | '', km: string, ver: string) {
+  try {
+    window.history.replaceState(null, '', buildSearchUrl(b, m, y, km, ver));
+  } catch {
+    /* ignore */
+  }
+}
+
 type SortKey = 'price-asc' | 'price-desc' | 'km-asc' | 'km-desc';
 
 export function App() {
@@ -57,6 +79,7 @@ export function App() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [sort, setSort] = useState<SortKey>('price-asc');
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
+  const deepLinkRan = useRef(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -98,7 +121,7 @@ export function App() {
       return;
     }
     const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
-    if (km.trim() !== '' && kmNum == null) {
+    if (km.trim() !== '' && (kmNum == null || Number.isNaN(kmNum))) {
       setFormError('Ingresá un kilometraje válido.');
       return;
     }
@@ -124,6 +147,7 @@ export function App() {
       setData(json);
       setSearchedNew(now);
       setHistory((h) => [{ brand: b.trim(), model: m.trim(), year: y, price: json.valuation!.average, isNew: now, mileage: km, version: ver.trim() }, ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y))].slice(0, 6));
+      syncUrl(b, m, y, km, ver);
     } catch {
       setFailed(true);
     } finally {
@@ -131,11 +155,45 @@ export function App() {
     }
   }
 
+  // Deep link: ?brand=Ford&model=Fiesta&year=2016&mileage=160000&version=Titanium
+  useEffect(() => {
+    if (deepLinkRan.current) return;
+    deepLinkRan.current = true;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const b = q.get('brand')?.trim() ?? '';
+      const m = q.get('model')?.trim() ?? '';
+      const yRaw = q.get('year')?.trim() ?? '';
+      if (!b || !m || !yRaw) return;
+      const y = Number(yRaw);
+      if (!Number.isInteger(y)) return;
+      const mileageRaw = q.get('mileage')?.replace(/\D/g, '').slice(0, 7) ?? '';
+      const km = mileageRaw === '' ? '' : formatMileageEsAR(mileageRaw);
+      const ver = q.get('version')?.trim() ?? '';
+      const conditionNew = q.get('condition')?.toUpperCase() === 'NEW';
+      const finalKm = km === '' && conditionNew ? '0' : km;
+      setBrand(b);
+      setModel(m);
+      setYear(y);
+      setMileage(finalKm);
+      setVersion(ver);
+      void search(b, m, y, finalKm, ver);
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function reset() {
     setData(null);
     setFailed(false);
     setShowListings(false);
     setFormError(null);
+    try {
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch {
+      /* ignore */
+    }
     window.scrollTo({ top: 0 });
   }
 
@@ -153,8 +211,33 @@ export function App() {
   const v = currency === 'USD' ? data?.valuationUSD : data?.valuation;
   const fmt = currency === 'USD' ? fmtUSD : fmtARS;
 
+  const shareTitle = data
+    ? (() => {
+        const appliedMileage = data.comparables?.appliedFilters?.mileage ?? null;
+        const appliedVersion = data.comparables?.appliedFilters?.version?.trim() ?? '';
+        const versionLabel = (version.trim() || appliedVersion) ? ` ${titleCase((version.trim() || appliedVersion))}` : '';
+        if (searchedNew) return `${titleCase(data.vehicle.brand)} ${titleCase(data.vehicle.model)} ${data.vehicle.year}${versionLabel} 0 km`;
+        const kmRaw = mileage.trim() !== '' ? mileage.trim() : (appliedMileage != null ? fmtNum(appliedMileage) : '');
+        const kmLabel = kmRaw !== '' ? ` ${kmRaw} km` : '';
+        return `${titleCase(data.vehicle.brand)} ${titleCase(data.vehicle.model)} ${data.vehicle.year}${versionLabel}${kmLabel}`;
+      })()
+    : '';
+  const shareLink = data
+    ? buildSearchUrl(data.vehicle.brand, data.vehicle.model, data.vehicle.year, mileage, version || data.comparables?.appliedFilters?.version || '')
+    : window.location.origin;
+  const resultSubtitle = data
+    ? (() => {
+        const appliedMileage = data.comparables?.appliedFilters?.mileage ?? null;
+        const appliedVersion = data.comparables?.appliedFilters?.version?.trim() ?? '';
+        const verLabel = (version.trim() || appliedVersion) ? ` · ${titleCase(version.trim() || appliedVersion)}` : '';
+        if (searchedNew) return `${data.vehicle.year}${verLabel} · 0 km`;
+        const kmRaw = mileage.trim() !== '' ? mileage.trim() : (appliedMileage != null ? fmtNum(appliedMileage) : '');
+        const kmLabel = kmRaw !== '' ? ` · ${kmRaw} km` : '';
+        return `${data.vehicle.year}${verLabel}${kmLabel}`;
+      })()
+    : '';
   const shareText = data && v
-    ? `${titleCase(data.vehicle.brand)} ${titleCase(data.vehicle.model)} ${data.vehicle.year}${searchedNew ? ' 0 km' : ''}\nValor estimado: ${fmt(v.average)}\nRango: ${fmt(v.min)} - ${fmt(v.max)}\nCalculá el valor de tu auto acá: ${window.location.origin}`
+    ? `${shareTitle}\nValor estimado: ${fmt(v.average)}\nRango: ${fmt(v.min)} - ${fmt(v.max)}\nMirá el detalle acá: ${shareLink}`
     : '';
   const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
@@ -269,7 +352,7 @@ export function App() {
                 <h2>Últimas búsquedas</h2>
                 {history.map((h, i) => (
                   <button key={i} type="button" onClick={() => { setBrand(h.brand); setModel(h.model); setYear(h.year); setMileage(h.mileage ?? ''); setVersion(h.version ?? ''); search(h.brand, h.model, h.year, h.mileage ?? '', h.version ?? ''); }}>
-                    <span>{titleCase(h.brand)} {titleCase(h.model)} {h.year}{h.isNew ? ' · 0 km' : ''}</span>
+                    <span>{titleCase(h.brand)} {titleCase(h.model)} {h.year}{h.version ? ` ${titleCase(h.version)}` : ''}{h.isNew ? ' · 0 km' : (h.mileage ? ` · ${h.mileage} km` : '')}</span>
                     <small>{fmtShort(h.price)}</small>
                   </button>
                 ))}
@@ -301,7 +384,7 @@ export function App() {
           <section aria-labelledby="result-title">
             <div className="vehicle">
               <h1 id="result-title">{titleCase(data.vehicle.brand)} {titleCase(data.vehicle.model)}</h1>
-              <p>{data.vehicle.year}{searchedNew ? ' · 0 km' : ''}</p>
+              <p>{resultSubtitle}</p>
             </div>
             <p className="question">¿Cuánto vale?</p>
             <p className="price">{fmt(v.average)}</p>
@@ -357,7 +440,7 @@ export function App() {
             </div>
             <div className="listings-head">
               <h1 id="listings-title">Publicaciones</h1>
-              <p>{titleCase(data.vehicle.brand)} {titleCase(data.vehicle.model)} {data.vehicle.year}{searchedNew ? ' · 0 km' : ''} · {sorted.length} avisos</p>
+              <p>{shareTitle} · {sorted.length} avisos</p>
             </div>
             <div className="sort-row">
               <label htmlFor="sort">Ordenar por:</label>

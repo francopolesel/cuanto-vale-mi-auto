@@ -1,7 +1,7 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/public/logo-dark-mode.jpg">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/public/logo-dark.png">
   <img src="frontend/public/logo.png" alt="Cuánto vale mi auto" width="420">
 </picture>
 

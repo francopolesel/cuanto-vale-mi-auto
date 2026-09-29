@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 170" role="img" aria-label="Cuánto vale mi auto">
+  <g fill="none" stroke="#eef1f4" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M45 118 L40 92 C40 82 48 78 70 76 L150 70 C185 48 225 42 280 42 L365 42 C415 42 450 56 480 72 L528 78 C552 80 562 88 562 102 L562 112"/>
+    <path d="M170 70 C200 52 232 50 272 50 L350 50 C388 50 412 58 436 70"/>
+    <path d="M40 118 L92 118"/>
+    <path d="M198 118 L414 118"/>
+    <path d="M486 118 L556 118"/>
+    <circle cx="450" cy="118" r="22"/>
+  </g>
+  <text x="104" y="140" font-family="Inter, system-ui, sans-serif" font-size="76" font-weight="800" fill="#7fb887">$</text>
+  <text x="610" y="82" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="700" letter-spacing="3" fill="#eef1f4">CUÁNTO VALE</text>
+  <text x="610" y="138" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="700" letter-spacing="3" fill="#eef1f4">MI AUTO</text>
+</svg>

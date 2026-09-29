@@ -206,7 +206,7 @@ export function App() {
                 </label>
                 <label htmlFor="model">
                   Modelo
-                  <input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ej: Siena" autoComplete="off" />
+                  <input id="model" type="text" inputMode="text" autoCapitalize="words" enterKeyHint="next" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ej: Siena" autoComplete="off" />
                 </label>
                 <label htmlFor="year">
                   Año

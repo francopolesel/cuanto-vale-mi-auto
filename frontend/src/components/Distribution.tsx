@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import type { ValuationResponse } from '../types';
 import { fmtNum } from '../types';
 
 /** Price distribution (P10–P90) + per-year comparable breakdown. Pure CSS/SVG, no dependencies. */
 export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: number) => string }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const s = data.statistics;
   if (!s || s.count < 2) return null;
   const span = s.max - s.min || 1;
@@ -16,7 +18,23 @@ export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: 
 
   return (
     <section className="dist" aria-label="Distribución de precios">
-      <h2>Distribución del mercado</h2>
+      <div className={`dist-head infotip${infoOpen ? ' open' : ''}`}>
+        <h2>Distribución del mercado</h2>
+        <button
+          type="button"
+          className="infotip-btn"
+          aria-expanded={infoOpen}
+          aria-label="¿Qué significa este gráfico?"
+          onClick={() => setInfoOpen((o) => !o)}
+        >
+          i
+        </button>
+        <p className="infotip-text">
+          La barra va del aviso más barato al más caro. La línea marcada es la mediana: la mitad de los avisos sale
+          menos y la otra mitad más. Si no está en el centro es porque los precios no se reparten parejo — por ejemplo,
+          cuando hay muchos más autos baratos que caros. Abajo ves cuántos avisos hay por año.
+        </p>
+      </div>
       <div
         className="dist-bar"
         role="img"

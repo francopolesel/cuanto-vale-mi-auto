@@ -487,7 +487,9 @@ details.filters {
 @media (min-width: 720px) {
   .tools-row {
     flex-direction: row;
-    align-items: stretch;
+    /* flex-start (not stretch): when <details> opens, the row grows taller
+       but .btn-clean keeps its natural height instead of stretching. */
+    align-items: flex-start;
   }
   .tools-row details.filters {
     flex: 1;

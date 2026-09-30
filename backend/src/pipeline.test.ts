@@ -1,16 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeText, normalizeBrand, parsePriceText, extractYear, extractMileage, detectPriceType } from './services/normalizer.js';
-import { mean, median, quantile, trimmedMean, removeOutliers, computeStats, weightedMean, weightedMedian, weightedQuantile } from './services/statistics.js';
+import {
+  normalizeText,
+  normalizeBrand,
+  parsePriceText,
+  extractYear,
+  extractMileage,
+  detectPriceType,
+} from './services/normalizer.js';
+import {
+  mean,
+  median,
+  quantile,
+  trimmedMean,
+  removeOutliers,
+  computeStats,
+  weightedMean,
+  weightedMedian,
+  weightedQuantile,
+} from './services/statistics.js';
 import { deduplicate } from './services/deduplicator.js';
 import { filterListings } from './services/filter.js';
 import { convertToARS } from './services/exchangeRate.js';
 import type { CarListing } from './types.js';
 
 const mk = (over: Partial<CarListing> = {}): CarListing => ({
-  source: 'Test', title: 'Toyota Corolla XEI 2020', brand: 'Toyota', model: 'Corolla',
-  year: 2020, price: 27000000, currency: 'ARS', priceARS: 27000000,
-  priceType: 'UNKNOWN', conditionTag: 'USED', sellerType: 'UNKNOWN',
-  url: 'http://x/' + Math.random(), scrapedAt: new Date().toISOString(), ...over,
+  source: 'Test',
+  title: 'Toyota Corolla XEI 2020',
+  brand: 'Toyota',
+  model: 'Corolla',
+  year: 2020,
+  price: 27000000,
+  currency: 'ARS',
+  priceARS: 27000000,
+  priceType: 'UNKNOWN',
+  conditionTag: 'USED',
+  sellerType: 'UNKNOWN',
+  url: 'http://x/' + Math.random(),
+  scrapedAt: new Date().toISOString(),
+  ...over,
 });
 
 describe('normalizer', () => {
@@ -106,7 +133,11 @@ describe('comparables', () => {
     expect(getModelSimilarity('VW Gol Trendline 1.6 2017', 'Volkswagen', 'Gol Trend').score).toBeGreaterThan(0);
     expect(getModelSimilarity('Volkswagen Voyage 2017', 'Volkswagen', 'Gol Trend').level).toBe('INVALID');
     expect(getModelSimilarity('Ford Fiesta 2017', 'Volkswagen', 'Gol Trend').level).toBe('INVALID');
-    const s = scoreComparable('Volkswagen Gol Trend 2016', 2016, 80000, { brand: 'Volkswagen', model: 'Gol Trend', year: 2017 });
+    const s = scoreComparable('Volkswagen Gol Trend 2016', 2016, 80000, {
+      brand: 'Volkswagen',
+      model: 'Gol Trend',
+      year: 2017,
+    });
     expect(s.level).toBe('NEARBY_YEAR');
     expect(s.total).toBeCloseTo(0.9, 5);
   });
@@ -140,7 +171,10 @@ describe('time adjustment', () => {
   it('refuses trend with too few year groups', async () => {
     const { adjustPricesToYear } = await import('./services/timeAdjust.js');
     const { info } = adjustPricesToYear(
-      [{ year: 2017, priceARS: 1 }, { year: 2017, priceARS: 2 }],
+      [
+        { year: 2017, priceARS: 1 },
+        { year: 2017, priceARS: 2 },
+      ],
       2017,
     );
     expect(info.applied).toBe(false);
@@ -180,7 +214,10 @@ describe('optional filters', () => {
     const { adjustPricesToMileage } = await import('./services/mileageAdjust.js');
     const few = Array.from({ length: 5 }, (_, i) => ({ mileage: 50000 + i * 10000, priceARS: 10_000_000 }));
     expect(adjustPricesToMileage(few, 170000).info.applied).toBe(false);
-    const rising = Array.from({ length: 20 }, (_, i) => ({ mileage: 40000 + i * 10000, priceARS: 10_000_000 + i * 100000 }));
+    const rising = Array.from({ length: 20 }, (_, i) => ({
+      mileage: 40000 + i * 10000,
+      priceARS: 10_000_000 + i * 100000,
+    }));
     expect(adjustPricesToMileage(rising, 170000).info.applied).toBe(false);
   });
 });

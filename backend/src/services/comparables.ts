@@ -43,7 +43,11 @@ function modelTokens(model: string): string[] {
  * - first token + at least one more token -> 0.9 (variant, e.g. "Gol Trend" vs "Gol Trendline")
  * - first token only -> 0.8 (same model family, different naming)
  */
-export function getModelSimilarity(title: string, brand: string, model: string): { score: number; level: Exclude<MatchLevel, 'NEARBY_YEAR'> } {
+export function getModelSimilarity(
+  title: string,
+  brand: string,
+  model: string,
+): { score: number; level: Exclude<MatchLevel, 'NEARBY_YEAR'> } {
   const t = ` ${normalizeText(title)} `;
   const nb = normalizeBrand(brand);
   const brandOk = t.includes(` ${nb} `) || (nb === 'volkswagen' && t.includes(' vw '));
@@ -126,5 +130,13 @@ export function scoreComparable(
     else if (model.score >= 1) level = 'NEARBY_YEAR';
     else level = 'VARIANT';
   }
-  return { modelSimilarity: model.score, yearSimilarity, versionSimilarity, mileageSimilarity, mileageFactor, total, level };
+  return {
+    modelSimilarity: model.score,
+    yearSimilarity,
+    versionSimilarity,
+    mileageSimilarity,
+    mileageFactor,
+    total,
+    level,
+  };
 }

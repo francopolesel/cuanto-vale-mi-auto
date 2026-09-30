@@ -15,7 +15,17 @@ export function confidenceLevel(params: {
   discardRatio: number;
   missingMileageShare: number;
 }): { level: 'ALTA' | 'MEDIA' | 'BAJA' | 'INSUFICIENTE'; score: number; explanation: string[] } {
-  const { comparables, effectiveWeight, exactCount, nearbyShare, sourcesOk, stats, outlierRatio, discardRatio, missingMileageShare } = params;
+  const {
+    comparables,
+    effectiveWeight,
+    exactCount,
+    nearbyShare,
+    sourcesOk,
+    stats,
+    outlierRatio,
+    discardRatio,
+    missingMileageShare,
+  } = params;
   const explanation: string[] = [];
 
   if (comparables < 5 || effectiveWeight < 3 || !stats) {

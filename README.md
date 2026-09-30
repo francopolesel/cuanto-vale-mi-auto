@@ -16,7 +16,7 @@ estadística robusta y un motor de **comparables ponderados**. Sin IA externa, s
 
 ![Tests](https://img.shields.io/badge/tests-27%2F27-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-estricto-blue)
-![Stack](https://img.shields.io/badge/React%20%2B%20Node%20%2B%20SQLite-informational)
+![Stack](https://img.shields.io/badge/React%20%2B%20Node%20%2B%20TS-informational)
 ![Costo](https://img.shields.io/badge/costo-%240-success)
 
 </div>
@@ -90,8 +90,8 @@ Solo se dice "sin datos suficientes" cuando no hay nada ni siquiera con comparab
 |---|---|
 | Frontend | React 19 · TypeScript · Vite · CSS con tokens (light/dark) |
 | Backend | Node.js · Express · TypeScript estricto · Zod |
-| Datos | Scraping HTTP + JSON-LD (sin browser) · SQLite (caché) |
-| Calidad | 27 tests (unit + fixtures HTML reales) · builds verificados |
+| Datos | Scraping HTTP + JSON-LD (sin browser) · caché en memoria con TTL |
+| Calidad | 27 tests (unit + fixtures HTML reales) · builds verificados · CI (prettier + tsc + vitest) |
 
 **Todo gratuito**: cero APIs pagas, cero proxies, cero LLMs. La inteligencia es código determinístico.
 
@@ -100,10 +100,13 @@ Solo se dice "sin datos suficientes" cuando no hay nada ni siquiera con comparab
 ## 📁 Estructura
 
 ```
+shared/            # Contrato API (tipos) — fuente única para backend y frontend
 frontend/          # React + Vite (UI accesible, ES simple)
+  src/components/  # App · SearchForm · Result (+ Distribution) · Listings
 backend/
   src/scrapers/    # Un adaptador por fuente (CarDataSource)
   src/services/    # comparables · timeAdjust · mileageAdjust · statistics · confidence
+  src/routes/      # valuation (?dollar=OFICIAL|BLUE|MEP) · dollar · og (imagen para compartir)
   fixtures/        # HTML reales para tests sin internet
 Dockerfile + render.yaml  # Deploy en un click
 ```

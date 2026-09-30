@@ -2,7 +2,7 @@ import { config } from '../config.js';
 import type { ExchangeRateInfo } from '../types.js';
 import { fetchWithTimeout, withRetry } from '../utils/http.js';
 
-let cache: { info: ExchangeRateInfo; expiresAt: number } | null = null;
+let cache: Map<string, { info: ExchangeRateInfo; expiresAt: number }> = new Map();
 
 async function fetchDolarApi(tipo: string): Promise<number | null> {
   const res = await fetchWithTimeout(`https://dolarapi.com/v1/dolares/${tipo}`, config.requestTimeoutMs);
@@ -14,9 +14,15 @@ async function fetchDolarApi(tipo: string): Promise<number | null> {
 
 export async function getExchangeRate(strategy?: string): Promise<ExchangeRateInfo> {
   const strat = (strategy ?? config.dollarStrategy).toUpperCase();
-  if (cache && Date.now() < cache.expiresAt && cache.info.strategy === strat) return cache.info;
+  const cached = cache.get(strat);
+  if (cached && Date.now() < cached.expiresAt) return cached.info;
 
-  const order = strat === 'BLUE' ? ['blue', 'oficial', 'bolsa'] : strat === 'MEP' ? ['bolsa', 'mep', 'oficial', 'blue'] : ['oficial', 'mayorista', 'bolsa', 'blue'];
+  const order =
+    strat === 'BLUE'
+      ? ['blue', 'oficial', 'bolsa']
+      : strat === 'MEP'
+        ? ['bolsa', 'mep', 'oficial', 'blue']
+        : ['oficial', 'mayorista', 'bolsa', 'blue'];
   // dolarapi exposes: oficial, blue, bolsa, contadoconliqui, mayorista, etc.
   const tried: string[] = [];
   for (const tipo of order) {
@@ -31,14 +37,15 @@ export async function getExchangeRate(strategy?: string): Promise<ExchangeRateIn
           fetchedAt: new Date().toISOString(),
           fallback: false,
         };
-        cache = { info, expiresAt: Date.now() + config.cacheTtlMinutes * 60_000 };
+        cache.set(strat, { info, expiresAt: Date.now() + config.cacheTtlMinutes * 60_000 });
         return info;
       }
     } catch {
       tried.push(tipo + ':error');
     }
   }
-  if (cache) return { ...cache.info, fallback: true };
+  const stale = cache.get(strat);
+  if (stale) return { ...stale.info, fallback: true };
   // Last resort: stale hardcoded-ish fallback clearly flagged (never silent)
   const info: ExchangeRateInfo = {
     source: 'fallback-estatico',

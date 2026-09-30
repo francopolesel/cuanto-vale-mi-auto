@@ -1,7 +1,7 @@
 const BRAND_ALIASES: Record<string, string> = {
   vw: 'volkswagen',
   chevy: 'chevrolet',
-  'mercedes': 'mercedes benz',
+  mercedes: 'mercedes benz',
   'mercedes-benz': 'mercedes benz',
   benz: 'mercedes benz',
   bmw: 'bmw',
@@ -94,7 +94,10 @@ export function parsePriceText(raw: string): { price: number | null; currency: '
 const FINANCED_HINTS = ['cuota', 'anticipo', 'entrega', 'financiado', 'financiacion', 'mensual', 'por mes', '/mes'];
 const CASH_HINTS = ['contado', 'precio total', 'precio de venta', 'precio final'];
 
-export function detectPriceType(title: string, priceText: string): 'CASH' | 'FINANCED' | 'DOWN_PAYMENT' | 'INSTALLMENT' | 'UNKNOWN' {
+export function detectPriceType(
+  title: string,
+  priceText: string,
+): 'CASH' | 'FINANCED' | 'DOWN_PAYMENT' | 'INSTALLMENT' | 'UNKNOWN' {
   const t = normalizeText(`${title} ${priceText}`);
   if (t.includes('anticipo') || t.includes('entrega minima') || t.includes('entrega')) return 'DOWN_PAYMENT';
   if (t.includes('cuota') || t.includes('por mes') || t.includes('mensual')) return 'INSTALLMENT';
@@ -113,7 +116,10 @@ export function extractVersion(title: string, brand: string, model: string): str
   const t = normalizeText(title);
   let rest = t.replace(normalizeText(brand), '').replace(normalizeText(model), '');
   rest = rest.replace(/\b(19\d{2}|20[0-3]\d)\b/g, '').trim();
-  const tokens = rest.split(' ').filter((w) => w.length > 1 && !/^\d+$/.test(w)).slice(0, 3);
+  const tokens = rest
+    .split(' ')
+    .filter((w) => w.length > 1 && !/^\d+$/.test(w))
+    .slice(0, 3);
   const v = tokens.join(' ').toUpperCase();
   return v || 'BASE';
 }

@@ -16,7 +16,7 @@ robust statistics and a **weighted-comparables engine**. No external AI, no paid
 
 ![Tests](https://img.shields.io/badge/tests-27%2F27-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
-![Stack](https://img.shields.io/badge/React%20%2B%20Node%20%2B%20SQLite-informational)
+![Stack](https://img.shields.io/badge/React%20%2B%20Node%20%2B%20TS-informational)
 ![Cost](https://img.shields.io/badge/cost-%240-success)
 
 </div>
@@ -90,8 +90,8 @@ Estimate + confidence + transparent methodology (debug object in the API)
 |---|---|
 | Frontend | React 19 · TypeScript · Vite · token-based CSS (light/dark) |
 | Backend | Node.js · Express · strict TypeScript · Zod |
-| Data | HTTP + JSON-LD scraping (no browser) · SQLite (cache) |
-| Quality | 27 tests (unit + real HTML fixtures) · verified builds |
+| Data | HTTP + JSON-LD scraping (no browser) · in-memory cache with TTL |
+| Quality | 27 tests (unit + real HTML fixtures) · verified builds · CI (prettier + tsc + vitest) |
 
 **Fully free**: zero paid APIs, zero proxies, zero LLMs. The smarts are deterministic code.
 
@@ -100,10 +100,13 @@ Estimate + confidence + transparent methodology (debug object in the API)
 ## 📁 Structure
 
 ```
+shared/            # API contract (types) — single source for backend and frontend
 frontend/          # React + Vite (accessible UI, plain language)
+  src/components/  # App · SearchForm · Result (+ Distribution) · Listings
 backend/
   src/scrapers/    # One adapter per source (CarDataSource)
   src/services/    # comparables · timeAdjust · mileageAdjust · statistics · confidence
+  src/routes/      # valuation (?dollar=OFICIAL|BLUE|MEP) · dollar · og (share image)
   fixtures/        # Real HTML for offline tests
 Dockerfile + render.yaml  # One-click deploy
 ```

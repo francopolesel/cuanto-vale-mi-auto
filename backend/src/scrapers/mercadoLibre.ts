@@ -2,7 +2,14 @@ import * as cheerio from 'cheerio';
 import type { CarDataSource, CarListing, SearchCriteria } from '../types.js';
 import { config } from '../config.js';
 import { fetchWithTimeout, withRetry, nowIso } from '../utils/http.js';
-import { detectPriceType, extractMileage, extractVersion, extractYear, normalizeBrand, normalizeText } from '../services/normalizer.js';
+import {
+  detectPriceType,
+  extractMileage,
+  extractVersion,
+  extractYear,
+  normalizeBrand,
+  normalizeText,
+} from '../services/normalizer.js';
 
 function mapCurrency(raw?: string): 'ARS' | 'USD' {
   if (raw === 'USD' || raw === 'DOL' || raw === 'U$S') return 'USD';
@@ -72,7 +79,14 @@ export class MercadoLibreSource implements CarDataSource {
       const res = await withRetry(() => fetchWithTimeout(url, config.requestTimeoutMs), 1, 300);
       if (!res.ok) throw new Error(`ML API ${res.status}`);
       const json = (await res.json()) as {
-        results?: Array<{ id: string; title: string; price: number; currency_id: string; permalink: string; attributes?: Array<{ id: string; value_name?: string | null }> }>;
+        results?: Array<{
+          id: string;
+          title: string;
+          price: number;
+          currency_id: string;
+          permalink: string;
+          attributes?: Array<{ id: string; value_name?: string | null }>;
+        }>;
       };
       const results = json.results ?? [];
       if (results.length === 0) break;
@@ -110,10 +124,7 @@ export class MercadoLibreSource implements CarDataSource {
     // model-level only, with more pages to gather nearby-year comparables.
     const urls = c.broad
       ? [`https://autos.mercadolibre.com.ar/${b}/${m}`]
-      : [
-          `https://autos.mercadolibre.com.ar/${b}/${m}/${c.year}`,
-          `https://autos.mercadolibre.com.ar/${b}/${m}`,
-        ];
+      : [`https://autos.mercadolibre.com.ar/${b}/${m}/${c.year}`, `https://autos.mercadolibre.com.ar/${b}/${m}`];
     const maxPages = c.broad ? Math.min(config.maxPagesBroad, 6) : Math.min(config.maxPagesPerSource, 3);
     const out: CarListing[] = [];
     for (const base of urls) {
@@ -198,7 +209,8 @@ export class MercadoLibreSource implements CarDataSource {
     }
     if (!title || !(price > 0)) return null;
     const t = normalizeText(title);
-    const brandOk = t.includes(normalizeBrand(c.brand)) || (normalizeBrand(c.brand) === 'volkswagen' && t.includes('vw'));
+    const brandOk =
+      t.includes(normalizeBrand(c.brand)) || (normalizeBrand(c.brand) === 'volkswagen' && t.includes('vw'));
     if (!brandOk || !t.includes(normalizeText(c.model).split(' ')[0])) return null;
     const year = extractYear(`${texts} ${title}`) ?? 0;
     const mileage = extractMileage(`${texts} ${title}`) ?? undefined;

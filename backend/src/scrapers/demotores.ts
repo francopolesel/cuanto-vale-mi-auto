@@ -2,7 +2,13 @@ import * as cheerio from 'cheerio';
 import type { CarDataSource, CarListing, SearchCriteria } from '../types.js';
 import { config } from '../config.js';
 import { fetchWithTimeout, withRetry, nowIso } from '../utils/http.js';
-import { detectPriceType, extractMileage, extractVersion, extractYear, parsePriceText } from '../services/normalizer.js';
+import {
+  detectPriceType,
+  extractMileage,
+  extractVersion,
+  extractYear,
+  parsePriceText,
+} from '../services/normalizer.js';
 
 /** DeMotores (portal argentino de clasificados). Parser HTML tolerante. */
 export class DeMotoresSource implements CarDataSource {

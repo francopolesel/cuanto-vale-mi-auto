@@ -2,7 +2,15 @@ import * as cheerio from 'cheerio';
 import type { CarDataSource, CarListing, SearchCriteria } from '../types.js';
 import { config } from '../config.js';
 import { fetchWithTimeout, withRetry, nowIso } from '../utils/http.js';
-import { detectPriceType, extractMileage, extractVersion, extractYear, normalizeBrand, normalizeText, parsePriceText } from '../services/normalizer.js';
+import {
+  detectPriceType,
+  extractMileage,
+  extractVersion,
+  extractYear,
+  normalizeBrand,
+  normalizeText,
+  parsePriceText,
+} from '../services/normalizer.js';
 
 /** Kavak Argentina: catalog JSON/HTML tolerant parser (precio de contado). */
 export class KavakSource implements CarDataSource {
@@ -10,10 +18,7 @@ export class KavakSource implements CarDataSource {
 
   async search(c: SearchCriteria): Promise<CarListing[]> {
     const q = encodeURIComponent(c.broad ? `${c.brand} ${c.model}` : `${c.brand} ${c.model} ${c.year}`);
-    const candidates = [
-      `https://www.kavak.com/ar/usados?search=${q}`,
-      `https://www.kavak.com/ar/usados?query=${q}`,
-    ];
+    const candidates = [`https://www.kavak.com/ar/usados?search=${q}`, `https://www.kavak.com/ar/usados?query=${q}`];
     for (const url of candidates) {
       try {
         const res = await withRetry(() => fetchWithTimeout(url, config.requestTimeoutMs), 2, 600);
@@ -102,7 +107,8 @@ export class KavakSource implements CarDataSource {
       if (typeof name === 'string' && price != null && (typeof url === 'string' || o['id'] != null)) {
         // Only accept cards that actually mention the requested brand+model (avoid nav/menu junk)
         const t = normalizeText(name);
-        const brandOk = t.includes(normalizeBrand(c.brand)) || (normalizeBrand(c.brand) === 'volkswagen' && t.includes('vw'));
+        const brandOk =
+          t.includes(normalizeBrand(c.brand)) || (normalizeBrand(c.brand) === 'volkswagen' && t.includes('vw'));
         const modelOk = t.includes(normalizeText(c.model).split(' ')[0]);
         if (brandOk && modelOk && name.length > 8) {
           const { price: p, currency } = parsePriceText(String(price));
@@ -121,7 +127,10 @@ export class KavakSource implements CarDataSource {
               currency: currency ?? 'ARS',
               priceType: 'CASH',
               conditionTag: 'USED',
-              url: typeof url === 'string' && url.startsWith('http') ? url : `https://www.kavak.com/ar/usados/${String(o['id'] ?? '')}`,
+              url:
+                typeof url === 'string' && url.startsWith('http')
+                  ? url
+                  : `https://www.kavak.com/ar/usados/${String(o['id'] ?? '')}`,
               sellerType: 'DEALER',
               scrapedAt: nowIso(),
             });

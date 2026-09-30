@@ -2,7 +2,13 @@ import * as cheerio from 'cheerio';
 import type { CarDataSource, CarListing, SearchCriteria } from '../types.js';
 import { config } from '../config.js';
 import { fetchWithTimeout, withRetry, nowIso } from '../utils/http.js';
-import { detectPriceType, extractMileage, extractVersion, extractYear, parsePriceText } from '../services/normalizer.js';
+import {
+  detectPriceType,
+  extractMileage,
+  extractVersion,
+  extractYear,
+  parsePriceText,
+} from '../services/normalizer.js';
 
 /**
  * Autocosmos: HTML listing pages + JSON-LD first, HTML fallback.
@@ -53,7 +59,9 @@ export class AutocosmosSource implements CarDataSource {
             const priceRaw = String(offers?.['price'] ?? e['price'] ?? '');
             const url = String(e['url'] ?? '');
             if (!name || !priceRaw) continue;
-            const { price, currency } = parsePriceText(priceRaw + (String(offers?.['priceCurrency'] ?? '').includes('USD') ? ' USD' : ' $'));
+            const { price, currency } = parsePriceText(
+              priceRaw + (String(offers?.['priceCurrency'] ?? '').includes('USD') ? ' USD' : ' $'),
+            );
             if (!price) continue;
             const year = extractYear(name) ?? 0;
             out.push({
@@ -83,7 +91,8 @@ export class AutocosmosSource implements CarDataSource {
       $('a[href*="usado"], a[href*="auto"], article, div[class*="card"], li[class*="result"]').each((_, el) => {
         if (out.length >= 60) return;
         const $el = $(el);
-        const title = $el.find('h2, h3, [class*="title"], [class*="name"]').first().text().trim() || $el.text().slice(0, 120);
+        const title =
+          $el.find('h2, h3, [class*="title"], [class*="name"]').first().text().trim() || $el.text().slice(0, 120);
         const priceText = $el.find('[class*="price"], [class*="precio"], b, strong').first().text().trim();
         const href = $el.attr('href') ?? $el.find('a').first().attr('href') ?? '';
         if (!title || !priceText || !href) return;

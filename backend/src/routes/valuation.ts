@@ -6,7 +6,11 @@ import { getExchangeRate } from '../services/exchangeRate.js';
 const querySchema = z.object({
   brand: z.string().min(1).max(60),
   model: z.string().min(1).max(80),
-  year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
+  year: z.coerce
+    .number()
+    .int()
+    .min(1980)
+    .max(new Date().getFullYear() + 1),
   mileage: z.coerce.number().int().min(0).max(2_000_000).optional(),
   version: z.string().min(1).max(40).optional(),
   condition: z.enum(['NEW']).optional(),
@@ -32,7 +36,7 @@ valuationRouter.get('/valuation', async (req, res) => {
         version: parsed.data.version?.trim() || undefined,
         condition: parsed.data.condition,
       },
-      { useCache: !parsed.data.refresh },
+      { useCache: !parsed.data.refresh, dollarStrategy: parsed.data.dollar },
     );
     res.json(result);
   } catch (e) {
@@ -59,7 +63,24 @@ valuationRouter.get('/dollar', async (_req, res) => {
   }
 });
 
-const BRANDS = ['Toyota', 'Volkswagen', 'Ford', 'Chevrolet', 'Renault', 'Peugeot', 'Fiat', 'Honda', 'Nissan', 'Citroen', 'Jeep', 'Audi', 'BMW', 'Mercedes Benz', 'Kia', 'Hyundai'];
+const BRANDS = [
+  'Toyota',
+  'Volkswagen',
+  'Ford',
+  'Chevrolet',
+  'Renault',
+  'Peugeot',
+  'Fiat',
+  'Honda',
+  'Nissan',
+  'Citroen',
+  'Jeep',
+  'Audi',
+  'BMW',
+  'Mercedes Benz',
+  'Kia',
+  'Hyundai',
+];
 
 valuationRouter.get('/brands', (_req, res) => {
   res.json({ brands: BRANDS });

@@ -31,7 +31,9 @@ async function searchAll(sources: CarDataSource[], criteria: SearchCriteria, pha
   const tasks = sources.map((s) => async (): Promise<ScraperResult> => {
     const t0 = Date.now();
     try {
-      console.log(`[${s.name}] ${phase} ${criteria.brand} ${criteria.model} ${criteria.year}${criteria.broad ? ' (broad)' : ''}`);
+      console.log(
+        `[${s.name}] ${phase} ${criteria.brand} ${criteria.model} ${criteria.year}${criteria.broad ? ' (broad)' : ''}`,
+      );
       const listings = await s.search(criteria);
       console.log(`[${s.name}] Found ${listings.length} listings`);
       return { source: s.name, success: true, durationMs: Date.now() - t0, listings };
@@ -81,13 +83,17 @@ function buildEstimate(scored: CarListing[], criteria: SearchCriteria): Pipeline
     unique.map((l) => ({ year: l.year, priceARS: l.priceARS ?? l.price })),
     criteria.year,
   );
-  console.log(`[TimeAdjust] ${timeAdj.info.applied ? `applied slope ${timeAdj.info.slopePerYearARS}` : `skipped: ${timeAdj.info.reason}`}`);
+  console.log(
+    `[TimeAdjust] ${timeAdj.info.applied ? `applied slope ${timeAdj.info.slopePerYearARS}` : `skipped: ${timeAdj.info.reason}`}`,
+  );
 
   const kmAdj = adjustPricesToMileage(
     unique.map((l, i) => ({ mileage: l.mileage ?? 0, priceARS: timeAdj.adjusted[i] })),
     criteria.mileage ?? 0,
   );
-  console.log(`[MileageAdjust] ${kmAdj.info.applied ? `applied slope ${kmAdj.info.slopePerKmARS}` : `skipped: ${kmAdj.info.reason}`}`);
+  console.log(
+    `[MileageAdjust] ${kmAdj.info.applied ? `applied slope ${kmAdj.info.slopePerKmARS}` : `skipped: ${kmAdj.info.reason}`}`,
+  );
   const adjusted = unique.map((l, i) => ({ ...l, adjustedPriceARS: kmAdj.adjusted[i] }));
 
   const adjPrices = adjusted.map((l) => l.adjustedPriceARS ?? 0);
@@ -135,8 +141,20 @@ function fmtKm(km?: number): string {
   return `${new Intl.NumberFormat('es-AR').format(km)} km`;
 }
 
-export async function runValuation(criteria: SearchCriteria, opts: { useCache?: boolean } = {}): Promise<ValuationResponse> {
-  const key = cacheKey(criteria.brand, criteria.model, criteria.year, criteria.mileage, criteria.version, criteria.condition);
+export async function runValuation(
+  criteria: SearchCriteria,
+  opts: { useCache?: boolean; dollarStrategy?: string } = {},
+): Promise<ValuationResponse> {
+  const strategy = (opts.dollarStrategy ?? config.dollarStrategy).toUpperCase();
+  const key = cacheKey(
+    criteria.brand,
+    criteria.model,
+    criteria.year,
+    criteria.mileage,
+    criteria.version,
+    criteria.condition,
+    strategy,
+  );
   if (opts.useCache !== false) {
     const hit = cacheGet(key);
     if (hit) {
@@ -148,9 +166,11 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
   const queriedAt = new Date().toISOString();
   const phases: string[] = ['LEVEL 1: exact model + exact year'];
   const sources: CarDataSource[] = buildSources();
-  console.log(`[Valuation] Searching ${criteria.brand} ${criteria.model} ${criteria.year} across ${sources.length} sources`);
+  console.log(
+    `[Valuation] Searching ${criteria.brand} ${criteria.model} ${criteria.year} across ${sources.length} sources`,
+  );
 
-  const exchangeRate = await getExchangeRate();
+  const exchangeRate = await getExchangeRate(strategy);
   console.log(`[FX] ${exchangeRate.source} ARS/USD=${exchangeRate.arsPerUsd}`);
   const withArs = (list: CarListing[]): CarListing[] =>
     list.map((l) => ({ ...l, priceARS: convertToARS(l.price, l.currency, exchangeRate.arsPerUsd) }));
@@ -202,7 +222,8 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
     tryRelax('mileage', rest);
   }
 
-  const { kept, discarded, duplicates, usedListings, stats, effectiveWeight, outliers, adjPrices, timeAdj, kmAdj } = est;
+  const { kept, discarded, duplicates, usedListings, stats, effectiveWeight, outliers, adjPrices, timeAdj, kmAdj } =
+    est;
 
   const discardReasons: Record<string, number> = {};
   for (const d of discarded) discardReasons[d.reason] = (discardReasons[d.reason] ?? 0) + 1;
@@ -226,7 +247,8 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
     missingMileageShare: usedListings.length ? missingKm / usedListings.length : 0,
   });
 
-  const valuation = stats && est.enough ? { min: est.wP10, max: est.wP90, average: est.wMean, median: est.wMedian } : null;
+  const valuation =
+    stats && est.enough ? { min: est.wP10, max: est.wP90, average: est.wMean, median: est.wMedian } : null;
   const valuationUSD =
     valuation != null
       ? {
@@ -260,7 +282,11 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
     versionCounts.set(v, (versionCounts.get(v) ?? 0) + 1);
   }
   const versions = [...versionCounts.entries()]
-    .map(([version, count]) => ({ version, count, pct: usedListings.length ? Math.round((count / usedListings.length) * 100) : 0 }))
+    .map(([version, count]) => ({
+      version,
+      count,
+      pct: usedListings.length ? Math.round((count / usedListings.length) * 100) : 0,
+    }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
@@ -272,9 +298,13 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
       ? `Estimación basada en ${usedListings.length} comparables del año ${criteria.year} con mediana y promedio ponderados por similitud.`
       : `Se encontraron ${nExact} publicaciones exactas del ${criteria.year}; la búsqueda se amplió a ${getComparableYearRange(criteria.year, config.yearWindow).join(', ')} y variantes del modelo. ` +
         `Estimación sobre ${usedListings.length} comparables ponderados por similitud` +
-        (timeAdj.applied ? `, con precios normalizados al ${criteria.year} (${timeAdj.reason})` : ', sin ajuste temporal') +
+        (timeAdj.applied
+          ? `, con precios normalizados al ${criteria.year} (${timeAdj.reason})`
+          : ', sin ajuste temporal') +
         (kmAdj.applied ? ` y normalizados a ${fmtKm(criteria.mileage)} (${kmAdj.reason})` : '') +
-        (relaxed.length > 0 ? ` Se relajaron los filtros opcionales (${relaxed.join(', ')}) por poca muestra específica.` : '') +
+        (relaxed.length > 0
+          ? ` Se relajaron los filtros opcionales (${relaxed.join(', ')}) por poca muestra específica.`
+          : '') +
         `.`
     : undefined;
 
@@ -327,10 +357,22 @@ export async function runValuation(criteria: SearchCriteria, opts: { useCache?: 
         variant: kept.filter((l) => l.matchLevel === 'VARIANT').length,
         invalid: discarded.length,
       },
-      filtering: { raw: raw.length, invalid: discarded.length, duplicated: duplicates, outliers, finalComparables: usedListings.length },
+      filtering: {
+        raw: raw.length,
+        invalid: discarded.length,
+        duplicated: duplicates,
+        outliers,
+        finalComparables: usedListings.length,
+      },
       thresholds: { minComparables: config.minComparables, minEffectiveWeight: config.minEffectiveWeight },
     },
-    sources: results.map((r) => ({ name: r.source, success: r.success, count: r.listings.length, error: r.error, durationMs: r.durationMs })),
+    sources: results.map((r) => ({
+      name: r.source,
+      success: r.success,
+      count: r.listings.length,
+      error: r.error,
+      durationMs: r.durationMs,
+    })),
     exchangeRate,
     listings: usedListings.sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0)).slice(0, 120),
     versions,

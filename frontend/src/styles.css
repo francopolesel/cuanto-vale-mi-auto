@@ -713,6 +713,12 @@ footer p {
   color: var(--color-text-secondary);
   text-decoration: none;
 }
+.contact-links a svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
 .contact-links a:hover {
   color: var(--color-accent);
   text-decoration: underline;

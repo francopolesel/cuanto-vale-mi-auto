@@ -5,8 +5,6 @@ export type {
   ComparableScore,
   ConditionTag,
   Currency,
-  DollarQuote,
-  DollarStrategy,
   ExchangeRateInfo,
   MatchLevel,
   PriceType,

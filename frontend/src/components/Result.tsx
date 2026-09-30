@@ -1,31 +1,25 @@
-import type { DollarQuote, DollarStrategy, ValuationResponse } from '../types';
+import type { ValuationResponse } from '../types';
 import { fmtARS, fmtNum, fmtUSD, titleCase } from '../types';
 import { Distribution } from './Distribution';
 
 interface Props {
   data: ValuationResponse;
   currency: 'ARS' | 'USD';
-  dollar: DollarStrategy;
-  quotes: DollarQuote | null;
   searchedNew: boolean;
   mileage: string;
   version: string;
   onCurrency: (c: 'ARS' | 'USD') => void;
-  onDollar: (d: DollarStrategy) => void;
   onShowListings: () => void;
   onReset: () => void;
 }
 
-const DOLLARS: DollarStrategy[] = ['OFICIAL', 'BLUE', 'MEP'];
-
-function buildShareLink(d: ValuationResponse, mileage: string, version: string, dollar: DollarStrategy): string {
+function buildShareLink(d: ValuationResponse, mileage: string, version: string): string {
   const params = new URLSearchParams({ brand: d.vehicle.brand, model: d.vehicle.model, year: String(d.vehicle.year) });
   const kmNum = mileage.trim() === '' ? undefined : Number(mileage.replace(/\D/g, ''));
   if (kmNum != null && !Number.isNaN(kmNum)) params.set('mileage', String(kmNum));
   const ver = version.trim() || d.comparables?.appliedFilters?.version || '';
   if (ver.trim()) params.set('version', ver.trim());
   if (kmNum === 0) params.set('condition', 'NEW');
-  if (dollar !== 'OFICIAL') params.set('dollar', dollar);
   if (d.valuation) params.set('price', String(d.valuation.average));
   return `${window.location.origin}${window.location.pathname}?${params}`;
 }
@@ -52,10 +46,9 @@ export function Result(p: Props) {
         const verLabel = versionLabel ? ` · ${versionLabel.trim()}` : '';
         return `${data.vehicle.year}${verLabel}${kmRaw !== '' ? ` · ${kmRaw} km` : ''}`;
       })();
-  const shareLink = buildShareLink(data, p.mileage, p.version, p.dollar);
+  const shareLink = buildShareLink(data, p.mileage, p.version);
   const shareText = `${shareTitle}\nValor estimado: ${fmt(v.average)}\nRango: ${fmt(v.min)} - ${fmt(v.max)}\nMirá el detalle acá: ${shareLink}`;
   const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-  const dollarLabel = p.dollar === 'OFICIAL' ? 'oficial' : p.dollar === 'BLUE' ? 'blue' : 'MEP';
 
   return (
     <section aria-labelledby="result-title">
@@ -74,7 +67,7 @@ export function Result(p: Props) {
       </div>
       <p className="updated">
         Actualizado {new Date(data.queriedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
-        {' · '}Dólar {dollarLabel} ${fmtNum(Math.round(data.exchangeRate.arsPerUsd))}
+        {' · '}Dólar oficial ${fmtNum(Math.round(data.exchangeRate.arsPerUsd))}
         {data.exchangeRate.fallback && ' (respaldo)'}
       </p>
       <div className="currency" role="group" aria-label="Moneda">
@@ -84,33 +77,6 @@ export function Result(p: Props) {
         <button type="button" aria-pressed={p.currency === 'USD'} onClick={() => p.onCurrency('USD')}>
           Dólares
         </button>
-      </div>
-      <div className="currency" role="group" aria-label="Tipo de dólar">
-        {DOLLARS.map((d) => (
-          <button
-            key={d}
-            type="button"
-            aria-pressed={p.dollar === d}
-            onClick={() => p.onDollar(d)}
-            title={
-              p.quotes
-                ? d === 'OFICIAL'
-                  ? p.quotes.oficial
-                    ? `Oficial $${fmtNum(Math.round(p.quotes.oficial.arsPerUsd))}`
-                    : 'Oficial'
-                  : d === 'BLUE'
-                    ? p.quotes.blue
-                      ? `Blue $${fmtNum(Math.round(p.quotes.blue.arsPerUsd))}`
-                      : 'Blue'
-                    : p.quotes.mep
-                      ? `MEP $${fmtNum(Math.round(p.quotes.mep.arsPerUsd))}`
-                      : 'MEP'
-                : d
-            }
-          >
-            {d === 'OFICIAL' ? 'Oficial' : d === 'BLUE' ? 'Blue' : 'MEP'}
-          </button>
-        ))}
       </div>
       <Distribution data={data} fmt={fmt} />
       <div className="actions">

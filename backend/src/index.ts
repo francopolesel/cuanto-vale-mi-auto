@@ -23,6 +23,8 @@ app.use('/api/valuation', valuationLimiter);
 app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 app.use('/api', valuationRouter);
 app.use('/api', ogRouter);
+// Unknown /api paths: JSON 404 (must precede the SPA fallback below).
+app.use('/api/', (_req, res) => res.status(404).json({ error: 'No encontrado' }));
 
 // Production: serve the frontend bundle from the same origin (single-service deploy).
 // backend/dist -> ../../frontend/dist. Skipped in dev (folder doesn't exist).

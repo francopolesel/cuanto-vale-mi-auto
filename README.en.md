@@ -106,7 +106,7 @@ frontend/          # React + Vite (accessible UI, plain language)
 backend/
   src/scrapers/    # One adapter per source (CarDataSource)
   src/services/    # comparables · timeAdjust · mileageAdjust · statistics · confidence
-  src/routes/      # valuation (?dollar=OFICIAL|BLUE|MEP) · dollar · og (share image)
+  src/routes/      # valuation · brands · og (share image)
   fixtures/        # Real HTML for offline tests
 Dockerfile + render.yaml  # One-click deploy
 ```

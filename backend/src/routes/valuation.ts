@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { runValuation } from '../services/orchestrator.js';
-import { getExchangeRate } from '../services/exchangeRate.js';
 
 const querySchema = z.object({
   brand: z.string().min(1).max(60),
@@ -15,7 +14,6 @@ const querySchema = z.object({
   version: z.string().min(1).max(40).optional(),
   condition: z.enum(['NEW']).optional(),
   refresh: z.coerce.boolean().optional(),
-  dollar: z.enum(['OFICIAL', 'BLUE', 'MEP']).optional(),
 });
 
 export const valuationRouter = Router();
@@ -36,28 +34,9 @@ valuationRouter.get('/valuation', async (req, res) => {
         version: parsed.data.version?.trim() || undefined,
         condition: parsed.data.condition,
       },
-      { useCache: !parsed.data.refresh, dollarStrategy: parsed.data.dollar },
+      { useCache: !parsed.data.refresh },
     );
     res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : 'Error interno' });
-  }
-});
-
-valuationRouter.get('/dollar', async (_req, res) => {
-  try {
-    const info = await getExchangeRate();
-    const [oficial, blue, mep] = await Promise.allSettled([
-      getExchangeRate('OFICIAL'),
-      getExchangeRate('BLUE'),
-      getExchangeRate('MEP'),
-    ]);
-    res.json({
-      selected: info,
-      oficial: oficial.status === 'fulfilled' ? oficial.value : null,
-      blue: blue.status === 'fulfilled' ? blue.value : null,
-      mep: mep.status === 'fulfilled' ? mep.value : null,
-    });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Error interno' });
   }

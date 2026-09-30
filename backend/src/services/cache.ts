@@ -62,7 +62,6 @@ export function cacheKey(
   mileage?: number,
   version?: string,
   condition?: string,
-  dollarStrategy?: string,
 ): string {
-  return `${brand.toLowerCase()}|${model.toLowerCase()}|${year}|${mileage ?? ''}|${(version ?? '').toLowerCase()}|${condition ?? ''}|${(dollarStrategy ?? 'OFICIAL').toUpperCase()}`;
+  return `${brand.toLowerCase()}|${model.toLowerCase()}|${year}|${mileage ?? ''}|${(version ?? '').toLowerCase()}|${condition ?? ''}`;
 }

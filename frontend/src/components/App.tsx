@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DollarQuote, DollarStrategy, ValuationResponse } from '../types';
+import type { ValuationResponse } from '../types';
 import { Listings, type SortKey } from './Listings';
 import { Result } from './Result';
 import { SearchForm, type HistoryEntry } from './SearchForm';
@@ -51,14 +51,13 @@ function formatMileageEsAR(digits: string): string {
   return new Intl.NumberFormat('es-AR').format(Number(digits));
 }
 
-function syncUrl(b: string, m: string, y: number | '', km: string, ver: string, dollar: DollarStrategy) {
+function syncUrl(b: string, m: string, y: number | '', km: string, ver: string) {
   try {
     const params = new URLSearchParams({ brand: b.trim(), model: m.trim(), year: String(y) });
     const kmNum = km.trim() === '' ? undefined : Number(km.replace(/\D/g, ''));
     if (kmNum != null && !Number.isNaN(kmNum)) params.set('mileage', String(kmNum));
     if (ver.trim()) params.set('version', ver.trim());
     if (kmNum === 0) params.set('condition', 'NEW');
-    if (dollar !== 'OFICIAL') params.set('dollar', dollar);
     window.history.replaceState(null, '', `${window.location.pathname}?${params}`);
   } catch {
     /* ignore */
@@ -73,8 +72,6 @@ export function App() {
   const [mileage, setMileage] = useState('');
   const [version, setVersion] = useState('');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
-  const [dollar, setDollar] = useState<DollarStrategy>('OFICIAL');
-  const [quotes, setQuotes] = useState<DollarQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
   const [data, setData] = useState<ValuationResponse | null>(null);
@@ -113,18 +110,7 @@ export function App() {
     return () => clearTimeout(t);
   }, [loading]);
 
-  useEffect(() => {
-    fetch('/api/dollar')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (j) setQuotes(j as DollarQuote);
-      })
-      .catch(() => {
-        /* quotes are nice-to-have */
-      });
-  }, []);
-
-  async function search(b = brand, m = model, y = year, km = mileage, ver = version, dl = dollar) {
+  async function search(b = brand, m = model, y = year, km = mileage, ver = version) {
     if (!b.trim()) {
       setFormError('Elegí una marca para continuar.');
       return;
@@ -154,7 +140,6 @@ export function App() {
       if (kmNum) params.set('mileage', String(kmNum));
       if (ver.trim()) params.set('version', ver.trim());
       if (now) params.set('condition', 'NEW');
-      if (dl !== 'OFICIAL') params.set('dollar', dl);
       const r = await fetch(`/api/valuation?${params}`);
       if (!r.ok) throw new Error();
       const json = (await r.json()) as ValuationResponse;
@@ -178,7 +163,7 @@ export function App() {
           ...h.filter((x) => !(x.brand === b && x.model === m && x.year === y)),
         ].slice(0, 6),
       );
-      syncUrl(b, m, y, km, ver, dl);
+      syncUrl(b, m, y, km, ver);
     } catch {
       setFailed(true);
     } finally {
@@ -186,7 +171,7 @@ export function App() {
     }
   }
 
-  // Deep link: ?brand=Ford&model=Fiesta&year=2016&mileage=160000&version=Titanium&dollar=BLUE
+  // Deep link: ?brand=Ford&model=Fiesta&year=2016&mileage=160000&version=Titanium
   useEffect(() => {
     if (deepLinkRan.current) return;
     deepLinkRan.current = true;
@@ -203,28 +188,17 @@ export function App() {
       const ver = q.get('version')?.trim() ?? '';
       const conditionNew = q.get('condition')?.toUpperCase() === 'NEW';
       const finalKm = km === '' && conditionNew ? '0' : km;
-      const dlRaw = q.get('dollar')?.toUpperCase();
-      const dl: DollarStrategy = dlRaw === 'BLUE' || dlRaw === 'MEP' ? dlRaw : 'OFICIAL';
       setBrand(b);
       setModel(m);
       setYear(y);
       setMileage(finalKm);
       setVersion(ver);
-      setDollar(dl);
-      void search(b, m, y, finalKm, ver, dl);
+      void search(b, m, y, finalKm, ver);
     } catch {
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function changeDollar(dl: DollarStrategy) {
-    setDollar(dl);
-    // The USD valuation depends on the rate: refetch when there is an active search.
-    if (data && brand.trim() && model.trim() && year !== '') {
-      void search(brand, model, year, mileage, version, dl);
-    }
-  }
 
   function reset() {
     setData(null);
@@ -337,13 +311,10 @@ export function App() {
           <Result
             data={data}
             currency={currency}
-            dollar={dollar}
-            quotes={quotes}
             searchedNew={searchedNew}
             mileage={mileage}
             version={version}
             onCurrency={setCurrency}
-            onDollar={changeDollar}
             onShowListings={goListings}
             onReset={reset}
           />

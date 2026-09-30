@@ -4,7 +4,6 @@ export type Currency = 'ARS' | 'USD';
 export type SellerType = 'PARTICULAR' | 'DEALER' | 'UNKNOWN';
 export type PriceType = 'CASH' | 'FINANCED' | 'DOWN_PAYMENT' | 'INSTALLMENT' | 'UNKNOWN';
 export type ConditionTag = 'USED' | 'NEW_OR_NEAR_NEW' | 'UNKNOWN';
-export type DollarStrategy = 'OFICIAL' | 'BLUE' | 'MEP';
 
 export interface SearchCriteria {
   brand: string;
@@ -96,13 +95,6 @@ export interface ValuationStats {
   p90: number;
   rawMin: number;
   rawMax: number;
-}
-
-export interface DollarQuote {
-  selected: ExchangeRateInfo | null;
-  oficial: ExchangeRateInfo | null;
-  blue: ExchangeRateInfo | null;
-  mep: ExchangeRateInfo | null;
 }
 
 export interface ValuationResponse {

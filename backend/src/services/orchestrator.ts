@@ -143,9 +143,8 @@ function fmtKm(km?: number): string {
 
 export async function runValuation(
   criteria: SearchCriteria,
-  opts: { useCache?: boolean; dollarStrategy?: string } = {},
+  opts: { useCache?: boolean } = {},
 ): Promise<ValuationResponse> {
-  const strategy = (opts.dollarStrategy ?? config.dollarStrategy).toUpperCase();
   const key = cacheKey(
     criteria.brand,
     criteria.model,
@@ -153,7 +152,6 @@ export async function runValuation(
     criteria.mileage,
     criteria.version,
     criteria.condition,
-    strategy,
   );
   if (opts.useCache !== false) {
     const hit = cacheGet(key);
@@ -170,7 +168,7 @@ export async function runValuation(
     `[Valuation] Searching ${criteria.brand} ${criteria.model} ${criteria.year} across ${sources.length} sources`,
   );
 
-  const exchangeRate = await getExchangeRate(strategy);
+  const exchangeRate = await getExchangeRate();
   console.log(`[FX] ${exchangeRate.source} ARS/USD=${exchangeRate.arsPerUsd}`);
   const withArs = (list: CarListing[]): CarListing[] =>
     list.map((l) => ({ ...l, priceARS: convertToARS(l.price, l.currency, exchangeRate.arsPerUsd) }));

@@ -20,9 +20,9 @@ npm workspaces monorepo: `shared/` (API contract) + `backend/` (Express API + va
 
 - ESM + TypeScript strict + `NodeNext`: relative imports need `.js` suffix (`./config.js`). Dev via `tsx watch src/index.ts`.
 - Entry: `index.ts` (helmet, rate-limit: `/api` 120/15min, `/api/valuation` 20/10min, CORS for `FRONTEND_ORIGIN` + localhost:5173) → `routes/` → `services/orchestrator.ts` (`runValuation`).
-- Routes: `GET /api/valuation?brand&model&year&mileage?&version?&condition?&dollar=OFICIAL|BLUE|MEP&refresh?` (Zod-validated) · `GET /api/dollar` (oficial/blue/mep quotes) · `GET /api/brands` (hardcoded 16, duplicated in frontend `SearchForm` via `App.tsx`) · `GET /api/og?title&price?&min?&max?` (1200×630 SVG share image, no deps).
+- Routes: `GET /api/valuation?brand&model&year&mileage?&version?&condition?&refresh?` (Zod-validated; unknown query keys like legacy `dollar` are ignored) · `GET /api/brands` (hardcoded 16, duplicated in frontend `SearchForm` via `App.tsx`) · `GET /api/og?title&price?&min?&max?` (1200×630 SVG share image, no deps). Unknown `/api/*` paths return JSON 404 (before the SPA fallback).
 - Pipeline order in `orchestrator.ts`: exact search → broad search (if `used < MIN_COMPARABLES=8` or weight `< MIN_EFFECTIVE_WEIGHT=5`) → rescore → relax optional filters (version, then mileage). Optional filters are **soft weights, never hard gates** (`services/comparables.ts`).
-- `dollar` flows `route → runValuation({dollarStrategy}) → getExchangeRate(strategy)`; cache key includes strategy. `exchangeRate` keeps a per-strategy in-memory entry with fallback chain; never silent (`fallback: true`).
+- `dollar` was intentionally removed from the UX: USD valuations always use the official rate (`DOLLAR_STRATEGY`, default OFICIAL). `exchangeRate` keeps its fallback chain; never silent (`fallback: true`).
 - Add a source = new class implementing `CarDataSource` + one line in `scrapers/registry.ts`. Scrapers use HTTP + cheerio/JSON-LD only, no browser. Concurrency `MAX_CONCURRENT_SCRAPERS` (3) + `SCRAPE_DELAY_MS` (400); `User-Agent` rotates per request (`utils/http.ts`).
 - Cache is process-local `Map` with TTL (`CACHE_TTL_MINUTES=60`, max 500 entries). Render free has ephemeral disk, so no file DB. Bypass with `?refresh=true`.
 - `/` with `?brand&model&year` injects per-search OG tags (`og:title`, `og:image` → `/api/og`) into `index.html` for WhatsApp/Twitter crawlers. Static middleware runs with `{ index: false }` so `/` reaches that route.
@@ -30,10 +30,10 @@ npm workspaces monorepo: `shared/` (API contract) + `backend/` (Express API + va
 
 ## Frontend (`frontend/src/`)
 
-- Components: `App.tsx` (state + fetch + deep link + history) · `SearchForm.tsx` · `Result.tsx` (price, ARS/USD + Oficial/Blue/MEP selectors, `Distribution.tsx` chart) · `Listings.tsx` (sort + pagination `PAGE_SIZE=15`).
+- Components: `App.tsx` (state + fetch + deep link + history) · `SearchForm.tsx` · `Result.tsx` (price, ARS/USD toggle, `Distribution.tsx` chart) · `Listings.tsx` (sort + pagination `PAGE_SIZE=15`).
 - `Distribution.tsx` renders P10/median/P90 markers + per-year bars with pure CSS, no chart deps (keeps $0-cost constraint).
-- State: `localStorage` keys `cvma-theme`, `cvma-history` (max 6). Deep link `?brand=&model=&year=&mileage=&version=&condition=NEW&dollar=` auto-runs search. `mileage=0` ⇒ `condition=NEW`. Changing dollar refetches when a search is active.
-- Share link includes `dollar` (when not OFICIAL) + `price` (feeds OG image).
+- State: `localStorage` keys `cvma-theme`, `cvma-history` (max 6). Deep link `?brand=&model=&year=&mileage=&version=&condition=NEW` auto-runs search. `mileage=0` ⇒ `condition=NEW`.
+- Share link includes `price` (feeds OG image).
 
 ## Gotchas
 

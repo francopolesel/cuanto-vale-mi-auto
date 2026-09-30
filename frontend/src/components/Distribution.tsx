@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import type { ValuationResponse } from '../types';
-import { fmtNum } from '../types';
 
-/** Price distribution (P10–P90) + per-year comparable breakdown. Pure CSS/SVG, no dependencies. */
+/** Price distribution bar (P10–P90). Pure CSS, no dependencies. */
 export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: number) => string }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const s = data.statistics;
@@ -14,7 +13,6 @@ export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: 
     { label: 'Mediana', value: s.median },
     { label: 'P90', value: s.p90 },
   ];
-  const maxByYear = Math.max(...data.comparables.byYear.map((b) => b.count), 1);
 
   return (
     <section className="dist" aria-label="Distribución de precios">
@@ -32,7 +30,7 @@ export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: 
         <p className="infotip-text">
           La barra va del aviso más barato al más caro. La línea marcada es la mediana: la mitad de los avisos sale
           menos y la otra mitad más. Si no está en el centro es porque los precios no se reparten parejo — por ejemplo,
-          cuando hay muchos más autos baratos que caros. Abajo ves cuántos avisos hay por año.
+          cuando hay muchos más autos baratos que caros.
         </p>
       </div>
       <div
@@ -60,21 +58,6 @@ export function Distribution({ data, fmt }: { data: ValuationResponse; fmt: (n: 
           <span>{fmt(s.max)}</span>
         </div>
       </div>
-      {data.comparables.byYear.length > 1 && (
-        <div className="dist-years">
-          {data.comparables.byYear.map((b) => (
-            <div key={b.year} className="dist-year-row">
-              <span className="dist-year">{b.year}</span>
-              <span className="dist-year-track">
-                <span className="dist-year-fill" style={{ width: `${Math.max(3, (b.count / maxByYear) * 100)}%` }} />
-              </span>
-              <span className="dist-year-meta">
-                {fmtNum(b.count)} avisos · med. {fmt(b.medianPriceARS)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }

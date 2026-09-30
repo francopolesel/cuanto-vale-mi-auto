@@ -849,38 +849,3 @@ footer p {
   font-weight: 700;
   color: var(--color-text-primary);
 }
-.dist-years {
-  display: grid;
-  gap: 8px;
-}
-.dist-year-row {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 4px 10px;
-  align-items: center;
-  font-size: 15px;
-}
-.dist-year {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.dist-year-track {
-  grid-column: 1 / -1;
-  height: 10px;
-  border-radius: 5px;
-  background: var(--color-surface, #e5e7eb);
-  overflow: hidden;
-}
-.dist-year-fill {
-  display: block;
-  height: 100%;
-  border-radius: 5px;
-  background: var(--color-accent);
-  opacity: 0.8;
-}
-.dist-year-meta {
-  grid-column: 1 / -1;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}

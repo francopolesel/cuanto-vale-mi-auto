@@ -755,7 +755,10 @@ footer p {
 .dist-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
+  /* row-gap: 0 so the pointer travels from the badge straight onto the
+     bubble without a dead gap that would flicker it closed. */
+  row-gap: 0;
   flex-wrap: wrap;
   margin: 0 0 12px;
 }
@@ -785,7 +788,7 @@ footer p {
 .infotip-text {
   display: none;
   flex-basis: 100%;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 12px 14px;
   font-size: 15px;
   line-height: 1.55;
@@ -794,9 +797,12 @@ footer p {
   border: 1px solid var(--color-border);
   border-radius: 10px;
 }
+/* Shown on tap-toggle (.open), on badge hover/focus, or while hovering the
+   bubble itself — never on header/title hover. */
 .infotip.open .infotip-text,
-.infotip:hover .infotip-text,
-.infotip:focus-within .infotip-text {
+.infotip-btn:hover + .infotip-text,
+.infotip-btn:focus + .infotip-text,
+.infotip-text:hover {
   display: block;
 }
 .dist-bar {
